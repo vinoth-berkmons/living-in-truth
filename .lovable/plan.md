@@ -1,46 +1,34 @@
 
-# Fix Audio on Hover-to-Play for Shorts
 
-## Problem
-The YouTube embed iframe uses `mute=1` in the URL, which silences all audio during hover previews. Browser autoplay policies require videos to be muted for autoplay to work -- so simply removing `mute=1` will cause the preview to not autoplay at all in most browsers.
+# Add Content Type Badge to All Cards
 
-## Solution
-Since browsers block unmuted autoplay, we need a two-step approach:
+## Summary
+Add a visible type badge (Video, Short, Course, Article, Blog) on every card so users can immediately identify what kind of content they're looking at. Currently, shorts have a "Short" badge but other types (video, article, blog, course) don't show their type.
 
-1. **Keep `mute=1` for autoplay** so the preview reliably starts playing on hover
-2. **Add a visible "unmute" button overlay** on the playing preview so users can click to enable audio
-3. When the user clicks unmute, we reload the iframe without `mute=1` (or use the YouTube IFrame API to unmute programmatically)
+## Change
 
-### Implementation
+### File: `src/components/ContentRail.tsx`
 
-**File: `src/components/ContentRail.tsx`**
+Replace the existing "Format badge for shorts" block (lines 218-223) with a unified **type/format badge** that shows on ALL cards (not just shorts), positioned at `bottom-2 left-2`:
 
-- Add an `isMuted` state (default `true`) alongside the existing `showPlayer` state
-- When `showPlayer` is true, render the iframe with `mute=1` initially
-- Overlay a small speaker/volume icon button (using Lucide `Volume2` / `VolumeX` icons) in the bottom-right corner of the playing preview
-- On click of the unmute button:
-  - Prevent the Link navigation (`e.preventDefault()` + `e.stopPropagation()`)
-  - Set `isMuted` to `false`, which changes the iframe `src` to remove `mute=1` (this will reload the embed unmuted -- since the user clicked, the browser allows it)
-- Reset `isMuted` to `true` on `mouseLeave`
+- **Short** (when `isShort`): purple/primary badge, label "Short"
+- **Video** (when `type === 'video'` and not short): blue-tinted badge with Play icon, label "Video"
+- **Course** (when `type === 'course'`): green-tinted badge with BookOpen icon, label "Course"
+- **Article** (when `type === 'article'`): amber-tinted badge with BookOpen icon, label "Article"
+- **Blog** (when `type === 'blog'`): teal-tinted badge with BookOpen icon, label "Blog"
 
-### Technical Details
+All badges use glass-morphism styling (`backdrop-blur-sm`) and only show when `!showPlayer` (hidden during hover preview).
 
-```text
-MediaCard state:
-  showPlayer: boolean (existing)
-  isMuted: boolean (new, default true)
+### Badge Style
+Each type gets a distinct background color for quick visual differentiation:
+- Short: `bg-primary/90 text-primary-foreground`
+- Video: `bg-blue-600/90 text-white`
+- Course: `bg-emerald-600/90 text-white`
+- Article: `bg-amber-600/90 text-white`
+- Blog: `bg-teal-600/90 text-white`
 
-iframe src logic:
-  mute=${isMuted ? 1 : 0}
+All badges: `rounded-lg px-2 py-1 text-xs font-semibold shadow-lg backdrop-blur-sm flex items-center gap-1`
 
-Unmute button:
-  - Position: absolute bottom-2 right-2 z-20
-  - Icon: VolumeX when muted, Volume2 when unmuted
-  - onClick: e.preventDefault(), e.stopPropagation(), toggle isMuted
-  - Style: glass-morphism small circle button
-```
+### No other files need changes
+The `MediaCardData` interface already has the `type` and `format` fields needed.
 
-This approach works because:
-- Autoplay with mute works reliably across all browsers
-- The unmute click counts as a user gesture, so browsers allow audio after that interaction
-- The iframe `src` change forces a reload with audio enabled

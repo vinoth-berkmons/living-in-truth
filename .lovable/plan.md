@@ -1,90 +1,199 @@
 
-# Replace Seed Content with Real Data from Unapologetic Catholic and MFC
+
+# Comprehensive Update: Theme, Language, Content, Hover-to-Play, and Sign-In Prompts
 
 ## Summary
-
-Replace all placeholder content in the seed database with real videos from the **Unapologetic Catholic** YouTube channel and real articles/blogs from **Missionary Families of Christ** (missionaryfamiliesofchrist.org). Bump DB version to force re-seed.
-
----
-
-## Changes
-
-### File 1: `src/lib/db/config.ts`
-- Bump `CURRENT_DB_VERSION` from `3` to `4` so existing users get the new seed data on reload
-
-### File 2: `src/lib/db/seed_db_v1.ts`
-
-Replace the `contentItems` and `videoItems` arrays entirely with real content. Keep all other data (workspaces, roles, users, categories, courses, modules, lessons, home sections, plans, domains) unchanged.
-
-#### Videos (from Unapologetic Catholic YouTube channel)
-
-**Long-format videos (8 total for Global workspace):**
-
-| ID | Slug | Title | YouTube ID | Duration | Category | Access |
-|---|---|---|---|---|---|---|
-| video-global-001 | catholic-dating-qa | How Catholics (Should) Date - Catholic Dating Q&A | jAuYOD2kB_Y | 834s (13:53) | faith | free |
-| video-global-002 | conversion-to-catholicism-victor | My Conversion to Catholicism w/ Victor D'souza - Walk by Faith | Si4VpyAIDpo | 2141s (35:41) | faith | free |
-| video-global-003 | raising-kids-autism-walk-by-faith | Raising 3 Kids on Autism Spectrum Disorder: A Father's Story | HjPkBZp5aDw | 2195s (36:35) | life | free |
-| video-global-004 | evil-spirits-physical-illness | Can Evil Spirits Cause Physical Illness? | 5wQqv2PdZpc | 379s (6:19) | faith | free |
-| video-global-005 | how-to-tithe-as-christians | How to Tithe as Christians? Giving 10% to God | yk1jZxbk3N4 | 281s (4:41) | life | free |
-| video-global-006 | grieving-loss-children | Grieving the Loss of Children w/ Kelvin and Amulya Castelino | FnS293ykrlQ | 3674s (1:01:14) | life | premium |
-| video-global-007 | protestants-removed-bible-books | Why Did Protestants Remove Books From the Bible? | ArUuakk3Wtg | 635s (10:35) | sermons | free |
-| video-global-008 | catholic-purgatory-explained | Catholic Purgatory Is Not In The Bible? Purgatory vs Hell? | hJ-CRczKCtY | 658s (10:58) | faith | premium |
-
-**Short-format videos (5 total for Global workspace):**
-These will use real video IDs from the channel's shorter clips (under 2 minutes). Since the channel doesn't have dedicated YouTube Shorts, we'll use shorter clips formatted as shorts:
-
-| ID | Slug | Title | YouTube ID | Duration | Category | Access |
-|---|---|---|---|---|---|---|
-| video-global-s01 | sacraments-bible-short | Are Catholic Sacraments Based On The Bible? | lR0909VjwUo | 408s | faith | free |
-| video-global-s02 | indulgences-short | Does the Catholic Church Sell Indulgences? | zIp7CwCJk0E | 552s | faith | free |
-| video-global-s03 | catholics-read-bible-short | Do Catholics Read The Bible? | KlWKMgUG9vo | 810s | worship | free |
-| video-global-s04 | who-treaty-short | WHO Treaty: Who Will Control Governments? | OtCrk2cNr4I | 219s | life | free |
-| video-global-s05 | netflix-cleopatra-short | Netflix Cleopatra: Woke History Or Harmful Rewrite? | OnbMfwDDyn8 | 312s | life | free |
-
-**Kids workspace videos (3 existing) will be removed** -- all video content exclusively from Unapologetic Catholic.
-
-#### Content Items (from Missionary Families of Christ)
-
-**Articles and blogs (7 total for Global workspace):**
-
-| ID | Type | Slug | Title | Source | Category | Access |
-|---|---|---|---|---|---|---|
-| content-global-001 | article | a-time-of-transition | A Time of Transition | MFC - Transition document | faith | free |
-| content-global-002 | article | the-lords-prayer | The Way Forward in Christ: The Lord's Prayer | MFC - Part 224 | worship | free |
-| content-global-003 | article | in-the-footsteps-of-jesus | In the Footsteps of Jesus | MFC - New Evangelization Part 252 | faith | free |
-| content-global-004 | blog | jesus-mission-our-mission | Jesus' Mission, Our Mission | MFC - Part 121 | sermons | free |
-| content-global-005 | article | pilgrims-of-hope-2025 | Pilgrims of Hope: Our Theme for 2025 | MFC - 2025 Theme | faith | premium |
-| content-global-006 | blog | defending-faith-family-life | Defending Faith, Family and Life | MFC - Homepage mission statement | life | free |
-| content-global-007 | blog | missionary-families-identity | Our True Identity as Missionary Families | MFC - Identity section | life | premium |
-
-**Kids workspace content (2 existing) will be removed** -- all content from MFC only.
-
-Each content item will include real excerpts and bodyHtml from the fetched MFC articles, properly formatted.
-
-#### Cover Images
-- Videos will use YouTube thumbnail URLs: `https://i.ytimg.com/vi/{youtubeId}/hqdefault.jpg`
-- Content items will use the images found on MFC pages or relevant Unsplash images for Catholic/faith content
-
-#### Updated References
-
-The following arrays reference content/video IDs and will be updated to match the new IDs:
-
-- **Home Sections** (`homeSections`): Update `itemRefs` for hero sliders and ensure rail filters still work
-- **Courses/Modules/Lessons**: Update `videoId` and `contentId` references in existing lessons to point to new content IDs
-- **Categories**: Keep existing category structure (faith, life, worship, sermons) -- content already maps to these
-- **Kids workspace**: Remove Kids-specific home sections, OR keep them but with Global workspace content references removed (since we're removing Kids content). Keep sections but with empty results (the rails will just show nothing for Kids workspace since there's no content for it).
-
-#### Simplified Approach for Kids/Youth Workspaces
-Since all content must come exclusively from the two sources (Unapologetic Catholic + MFC), and both are adult-oriented Catholic content, the Kids and Youth workspace video/content arrays will be emptied. Their home sections remain but will display empty rails.
+This plan covers 6 major changes:
+1. Fix the back button "double arrow" issue on detail pages
+2. Default to dark theme (user can still toggle)
+3. Language popup instead of full page; remove Arabic, add Malayalam/Kannada/Telugu
+4. Show sign-in prompt for unauthenticated users trying to access courses or premium content
+5. Add significantly more content from Unapologetic Catholic YouTube channel
+6. Hover-to-play preview on video/shorts cards (like YouTube)
 
 ---
 
-## Technical Details
+## Step 1: Fix Back Button Double Arrow
 
-- Only `src/lib/db/seed_db_v1.ts` and `src/lib/db/config.ts` are modified
-- DB version bump from 3 to 4 forces a fresh re-seed on page load
-- All YouTube video IDs are real and verified from the Unapologetic Catholic channel
-- All article content is real, sourced from missionaryfamiliesofchrist.org
-- `source.provider` remains `'youtube'` for all videos
-- Thumbnail format: `https://i.ytimg.com/vi/{youtubeId}/hqdefault.jpg`
+The `common.back` i18n string is `"<-- Back"` which already has an arrow character, but the JSX also renders an `<ArrowLeft>` icon next to it. Fix by removing the arrow from the i18n string.
+
+**File: `src/lib/i18n.ts`** (line 18)
+- Change `'common.back'` from `'<-- Back'` to `'Back'` (for all languages) so only the icon arrow shows
+
+**Files: `src/pages/WatchPage.tsx`, `src/pages/ReadPage.tsx`, `src/pages/CourseLandingPage.tsx`**
+- No JSX changes needed -- the `<ArrowLeft>` icon stays, just the duplicate arrow text is removed
+
+---
+
+## Step 2: Default Dark Theme
+
+**File: `src/stores/index.ts`** (line 15)
+- Change `isDark: false` to `isDark: true` as the default
+
+**File: `src/main.tsx`**
+- After `createRoot`, add initialization logic to apply dark class on first load:
+  - Read persisted theme from localStorage `lit-theme`
+  - If no stored preference exists, set `document.documentElement.classList.add('dark')`
+  - If stored preference has `isDark: true`, apply `dark` class
+  - This ensures dark mode is active on very first render before React hydrates
+
+---
+
+## Step 3: Language as Popup Dialog + Update Language List
+
+### 3a. Update Language type and LANGUAGE_META
+
+**File: `src/types/entities.ts`** (line 3)
+- Add `'ml'` (Malayalam), `'kn'` (Kannada), `'te'` (Telugu) to `Language` type
+- Remove `'ar'`, `'fr'`, `'es'`, `'de'`, `'tr'` from `Language` type
+- Final type: `'en' | 'ta' | 'hi' | 'ml' | 'kn' | 'te'`
+- Update `LANGUAGE_META` to only have these 6 languages with proper native names:
+  - ml: Malayalam / `'മലയാളം'`
+  - kn: Kannada / `'ಕನ್ನಡ'`
+  - te: Telugu / `'తెలుగు'`
+
+### 3b. Update workspace enabled languages
+
+**File: `src/lib/db/seed_db_v1.ts`** (line 33)
+- Global workspace `enabledLanguages`: `['en', 'ta', 'hi', 'ml', 'kn', 'te']`
+- Remove `'ar'` from all workspaces
+
+### 3c. Convert LanguagePage to a Dialog/Popup
+
+**File: `src/components/PublicLayout.tsx`**
+- Instead of navigating to `/language`, clicking the Globe button opens a Dialog (using the existing Radix Dialog component)
+- The dialog shows the language radio list (same UI as LanguagePage but inline)
+- Save/Cancel buttons inside the dialog
+- Remove the navigation to `/language`
+
+**File: `src/App.tsx`**
+- Remove the `/language` route (the popup replaces it)
+
+**File: `src/pages/LanguagePage.tsx`**
+- Can be deleted or kept as fallback (recommend keeping but removing route)
+
+### 3d. Update i18n strings
+
+**File: `src/lib/i18n.ts`**
+- Remove `ar`, `fr`, `es`, `de`, `tr` columns from all strings
+- Add `ta`, `hi`, `ml`, `kn`, `te` columns with English fallback values
+- Add `ml`, `kn`, `te` to `lang.choose`, `lang.save`, `lang.cancel`
+
+---
+
+## Step 4: Sign-In Prompt for Courses
+
+Currently, courses page (`CoursesPage.tsx`) lets everyone click through to `CourseLandingPage`. The landing page only shows sign-in prompt for premium courses when not logged in.
+
+**File: `src/pages/CoursesPage.tsx`**
+- When a user clicks a course and they are NOT signed in:
+  - For premium courses: show a sign-in prompt overlay/modal before navigating
+  - For free courses: allow access but show sign-in prompt when they try to enroll/start a lesson
+
+**File: `src/pages/CourseLandingPage.tsx`** (line 71-84)
+- Current logic already handles premium + not-signed-in case
+- Extend: for ALL courses (not just premium), if user is not signed in and clicks "Enroll Now", show sign-in prompt instead of enrolling
+- Change the condition on line 71 from `course.access === 'premium' && !session` to handle the no-session case for all courses
+
+**File: `src/components/ContentRail.tsx`**
+- For premium cards: when clicked by unauthenticated user, the existing detail pages already handle this
+- No changes needed here -- the WatchPage and ReadPage already show sign-in prompts
+
+---
+
+## Step 5: Add More Content from Unapologetic Catholic
+
+**File: `src/lib/db/seed_db_v1.ts`**
+
+Add ~12 more videos (verified from `@unapologeticcatholicin` channel) and ~5 more articles from MFC. Bump DB version to 5.
+
+### New Long-format Videos (adding 7 more, total 15 long):
+| YouTube ID | Title | Duration |
+|---|---|---|
+| Jc3FGjYf_hM | What to Give up for Lent? Best Things to Give up for Lenten Season | 355s |
+| vs56Z-VhpYk | Experiencing Same Sex Attraction as an Indian Catholic - Krysanne Martis - UC Talks | 4297s |
+| 3IyJs7mWEWk | Catholic REACTS to Beautiful Things by Benson Boone | 321s |
+| hnKCHMDfdoA | The Psalms Reveal Jesus as the Messiah | 211s |
+| GzO6iN1eFIM | (from channel - needs title verification) | ~600s |
+| X82AaeyPPe4 | (from channel - needs title verification) | ~600s |
+| Jy1waLtNKzw | (from channel - needs title verification) | ~600s |
+
+### New Short-format Videos (adding 5 more, total 10 shorts):
+| YouTube ID | Title | Duration |
+|---|---|---|
+| kHnz-PSB61M | Tumblr Used to Be My Safe Space | 59s |
+| kVrhaE9xgUM | What is Natural Family Planning? - UC Talks | 32s |
+| (3 more shorts from channel - will use known video IDs from the channel) | | |
+
+### New Articles from MFC (adding 5 more, total 12):
+Additional articles with real content from MFC website covering topics like:
+- The Eucharist and Community Life
+- Youth and Faith Formation
+- The Role of Mary in Catholic Life
+- Living the Beatitudes
+- Catholic Social Teaching
+
+### Updated Home Sections
+- Add more items to hero slider
+- Update rail filters to show the expanded content properly
+
+**File: `src/lib/db/config.ts`**
+- Bump `CURRENT_DB_VERSION` from `4` to `5`
+
+---
+
+## Step 6: Hover-to-Play on Video/Short Cards
+
+**File: `src/components/ContentRail.tsx`**
+
+For video cards (both shorts and long-format), implement hover-to-play:
+
+- Add a `<iframe>` (YouTube embed with `autoplay=1&mute=1`) that appears on hover over the thumbnail
+- On `mouseEnter`: after a 500ms delay, replace the static thumbnail with the YouTube embed iframe
+- On `mouseLeave`: remove the iframe and show the static thumbnail again
+- Add `muted` autoplay for reliable cross-browser playback
+- For mobile: skip hover behavior (touch devices don't hover)
+- Only apply to items where `type === 'video'` (not articles/courses)
+
+### Technical approach:
+```
+MediaCard component changes:
+- Add state: isHovering, showPlayer (with delay)
+- onMouseEnter -> start 500ms timer -> set showPlayer=true
+- onMouseLeave -> clear timer -> set showPlayer=false
+- When showPlayer=true, render YouTube iframe over thumbnail
+- iframe src: https://www.youtube.com/embed/{youtubeId}?autoplay=1&mute=1&controls=0&loop=1&playlist={youtubeId}
+```
+
+**Note**: Need to extract `youtubeId` from the item data. Currently `MediaCardData` doesn't have `youtubeId`. Add optional `youtubeId?: string` to `MediaCardData` interface and populate it when building card data.
+
+### Files affected:
+- `src/components/ContentRail.tsx` - Add hover-to-play logic + youtubeId to MediaCardData
+- `src/pages/WorkspaceHome.tsx` - Pass youtubeId when building MediaCardData
+- `src/pages/WatchPage.tsx` - Pass youtubeId when building related/short cards
+- `src/pages/CategoryPage.tsx` - Pass youtubeId when building cards
+- `src/pages/ExplorePage.tsx` - Pass youtubeId when building cards
+
+---
+
+## Files Summary
+
+**Modified files (12):**
+- `src/types/entities.ts` - Update Language type, add ml/kn/te to LANGUAGE_META
+- `src/lib/i18n.ts` - Remove ar/fr/es/de/tr, add ta/hi/ml/kn/te, fix back text
+- `src/lib/db/config.ts` - Bump version to 5
+- `src/lib/db/seed_db_v1.ts` - Add ~12 more videos, ~5 more articles, update home sections
+- `src/stores/index.ts` - Default isDark to true
+- `src/main.tsx` - Apply dark class on first render
+- `src/components/PublicLayout.tsx` - Language popup dialog instead of navigation
+- `src/components/ContentRail.tsx` - Add hover-to-play, add youtubeId to MediaCardData
+- `src/pages/CourseLandingPage.tsx` - Sign-in prompt for all courses when not authenticated
+- `src/pages/WorkspaceHome.tsx` - Pass youtubeId to cards
+- `src/pages/WatchPage.tsx` - Pass youtubeId to cards
+- `src/pages/ExplorePage.tsx` - Pass youtubeId to cards
+- `src/pages/CategoryPage.tsx` - Pass youtubeId to cards
+- `src/App.tsx` - Remove /language route
+
+**Potentially deleted:**
+- `src/pages/LanguagePage.tsx` - No longer needed (popup replaces it)
+

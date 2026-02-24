@@ -145,6 +145,7 @@ function getRailItems(section: HomeSection, db: AppDatabase, workspace: { id: st
         id: item.id, title: tr?.title ?? 'Untitled', excerpt: tr?.description,
         coverImageUrl: item.coverImageUrl, href: `/watch/${item.slug}`,
         type: 'video', format: item.format, access: item.access, durationSeconds: item.durationSeconds,
+        youtubeId: item.source.youtubeId,
       });
     }
   }

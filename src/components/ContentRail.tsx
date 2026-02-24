@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Play, Clock, Crown } from 'lucide-react';
 import type { Language } from '@/types/entities';
@@ -15,6 +15,7 @@ export interface MediaCardData {
   access: 'free' | 'premium';
   durationSeconds?: number;
   moduleCount?: number;
+  youtubeId?: string;
 }
 
 interface ContentRailProps {
@@ -102,10 +103,32 @@ const MediaCard = ({ item, language, isShort }: MediaCardProps) => {
   const cardWidth = isShort ? 'min-w-[160px] max-w-[160px]' : 'min-w-[260px] max-w-[260px] md:min-w-[300px] md:max-w-[300px]';
   const aspectRatio = isShort ? 'aspect-[9/16]' : 'aspect-video';
 
+  const [showPlayer, setShowPlayer] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleMouseEnter = useCallback(() => {
+    if (!item.youtubeId || item.type !== 'video') return;
+    timerRef.current = setTimeout(() => setShowPlayer(true), 600);
+  }, [item.youtubeId, item.type]);
+
+  const handleMouseLeave = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = null;
+    setShowPlayer(false);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
   return (
     <Link
       to={item.href}
       className={`group snap-start flex-shrink-0 ${cardWidth} overflow-hidden rounded-lg transition-all hover:scale-[1.02]`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       {/* Thumbnail */}
       <div className={`relative ${aspectRatio} overflow-hidden rounded-lg bg-secondary`}>
@@ -114,19 +137,32 @@ const MediaCard = ({ item, language, isShort }: MediaCardProps) => {
             src={item.coverImageUrl}
             alt={item.title}
             loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className={`h-full w-full object-cover transition-transform duration-300 group-hover:scale-105 ${showPlayer ? 'opacity-0' : 'opacity-100'}`}
           />
         )}
 
-        {/* Overlay on hover */}
-        <div className="absolute inset-0 flex items-center justify-center bg-background/0 opacity-0 transition-all group-hover:bg-background/30 group-hover:opacity-100">
-          <div className="rounded-full bg-primary p-3 shadow-lg">
-            <Play className="h-5 w-5 text-primary-foreground" fill="currentColor" />
+        {/* YouTube hover preview */}
+        {showPlayer && item.youtubeId && (
+          <iframe
+            src={`https://www.youtube.com/embed/${item.youtubeId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${item.youtubeId}&modestbranding=1&showinfo=0&rel=0`}
+            className="absolute inset-0 h-full w-full"
+            allow="autoplay; encrypted-media"
+            frameBorder="0"
+            loading="lazy"
+          />
+        )}
+
+        {/* Overlay on hover (only when not playing) */}
+        {!showPlayer && (
+          <div className="absolute inset-0 flex items-center justify-center bg-background/0 opacity-0 transition-all group-hover:bg-background/30 group-hover:opacity-100">
+            <div className="rounded-full bg-primary p-3 shadow-lg">
+              <Play className="h-5 w-5 text-primary-foreground" fill="currentColor" />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Duration badge */}
-        {item.durationSeconds && !isShort && (
+        {item.durationSeconds && !isShort && !showPlayer && (
           <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded bg-background/80 px-1.5 py-0.5 text-xs font-medium text-foreground backdrop-blur-sm">
             <Clock className="h-3 w-3" />
             {formatDuration(item.durationSeconds)}
@@ -134,7 +170,7 @@ const MediaCard = ({ item, language, isShort }: MediaCardProps) => {
         )}
 
         {/* Premium badge */}
-        {item.access === 'premium' && (
+        {item.access === 'premium' && !showPlayer && (
           <div className="absolute left-2 top-2 flex items-center gap-1 rounded bg-accent/90 px-1.5 py-0.5 text-xs font-semibold text-accent-foreground">
             <Crown className="h-3 w-3" />
             {t('common.premium', language)}
@@ -142,7 +178,7 @@ const MediaCard = ({ item, language, isShort }: MediaCardProps) => {
         )}
 
         {/* Format badge for shorts */}
-        {isShort && (
+        {isShort && !showPlayer && (
           <div className="absolute bottom-2 left-2 rounded bg-primary/90 px-1.5 py-0.5 text-xs font-semibold text-primary-foreground">
             Short
           </div>

@@ -68,10 +68,10 @@ const CourseLandingPage = () => {
                 <Link to={`/course/${course.slug}/lesson/${modules[0]?.lessonIds[0] || ''}`} className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground hover:bg-primary/90">
                   <Play className="h-4 w-4" />{t('course.continue', language)}
                 </Link>
-              ) : course.access === 'premium' && !session ? (
+              ) : !session ? (
                 <div className="flex items-center gap-3">
                   <Link to={`/login?redirect=${currentPath}`} className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground hover:bg-primary/90">
-                    <LogIn className="h-4 w-4" />Sign In
+                    <LogIn className="h-4 w-4" />Sign In to Enroll
                   </Link>
                   <Link to={`/signup?redirect=${currentPath}`} className="inline-flex items-center gap-2 rounded-lg border border-primary px-6 py-3 font-semibold text-primary hover:bg-primary/5">
                     <UserPlus className="h-4 w-4" />Sign Up

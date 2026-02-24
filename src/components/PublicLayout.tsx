@@ -46,9 +46,9 @@ export const PublicLayout = ({ children }: PublicLayoutProps) => {
 
   const navLinks = [
     { label: t('nav.home', language), to: '/' },
-    { label: t('nav.videos', language), to: '/explore?type=video' },
+    { label: t('nav.videos', language), to: '/videos' },
     { label: t('nav.courses', language), to: '/courses' },
-    { label: t('nav.articles', language), to: '/explore?type=article' },
+    { label: t('nav.articles', language), to: '/articles' },
     { label: t('nav.explore', language), to: '/explore' },
   ];
 
@@ -305,7 +305,7 @@ export const PublicLayout = ({ children }: PublicLayoutProps) => {
               <nav className="mt-4 flex flex-col gap-3">
                 <Link to="/explore" className="text-sm text-foreground/70 hover:text-primary transition-colors duration-300">{t('nav.explore', language)}</Link>
                 <Link to="/courses" className="text-sm text-foreground/70 hover:text-primary transition-colors duration-300">{t('nav.courses', language)}</Link>
-                <Link to="/explore?type=video" className="text-sm text-foreground/70 hover:text-primary transition-colors duration-300">{t('nav.videos', language)}</Link>
+                <Link to="/videos" className="text-sm text-foreground/70 hover:text-primary transition-colors duration-300">{t('nav.videos', language)}</Link>
               </nav>
             </div>
             <div>

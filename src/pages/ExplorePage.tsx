@@ -8,12 +8,16 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { Search, Filter, Play, Clock, Crown, BookOpen, GraduationCap } from 'lucide-react';
 import type { Language } from '@/types/entities';
 
-const ExplorePage = () => {
+interface ExplorePageProps {
+  contentType?: 'all' | 'video' | 'article';
+}
+
+const ExplorePage = ({ contentType = 'all' }: ExplorePageProps) => {
   const workspace = useWorkspace();
   const [searchParams] = useSearchParams();
   const { language } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState<string>(searchParams.get('type') || 'all');
+  const [filterType, setFilterType] = useState<string>(contentType !== 'all' ? contentType : (searchParams.get('type') || 'all'));
   const [filterAccess, setFilterAccess] = useState<string>('all');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
 
@@ -141,7 +145,7 @@ const ExplorePage = () => {
 
           {/* Filters */}
           <div className="mb-6 flex flex-wrap items-center gap-2">
-            {typeFilters.map(f => (
+            {contentType === 'all' && typeFilters.map(f => (
               <button
                 key={f.value}
                 onClick={() => setFilterType(f.value)}

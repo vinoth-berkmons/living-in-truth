@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Play, Clock, Crown, BookOpen } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Clock, Crown, BookOpen, Volume2, VolumeX } from 'lucide-react';
 import type { Language } from '@/types/entities';
 import { t } from '@/lib/i18n';
 
@@ -124,6 +124,7 @@ const MediaCard = ({ item, language, isShort, index }: MediaCardProps) => {
   const aspectRatio = isShort ? 'aspect-[9/16]' : 'aspect-video';
 
   const [showPlayer, setShowPlayer] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleMouseEnter = useCallback(() => {
@@ -135,6 +136,13 @@ const MediaCard = ({ item, language, isShort, index }: MediaCardProps) => {
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = null;
     setShowPlayer(false);
+    setIsMuted(true);
+  }, []);
+
+  const handleToggleMute = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsMuted(prev => !prev);
   }, []);
 
   useEffect(() => {
@@ -164,13 +172,22 @@ const MediaCard = ({ item, language, isShort, index }: MediaCardProps) => {
 
         {/* YouTube hover preview */}
         {showPlayer && item.youtubeId && (
-          <iframe
-            src={`https://www.youtube.com/embed/${item.youtubeId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${item.youtubeId}&modestbranding=1&showinfo=0&rel=0`}
-            className="absolute inset-0 h-full w-full z-10"
-            allow="autoplay; encrypted-media"
-            frameBorder="0"
-            loading="lazy"
-          />
+          <>
+            <iframe
+              src={`https://www.youtube.com/embed/${item.youtubeId}?autoplay=1&mute=${isMuted ? 1 : 0}&controls=0&loop=1&playlist=${item.youtubeId}&modestbranding=1&showinfo=0&rel=0`}
+              className="absolute inset-0 h-full w-full z-10"
+              allow="autoplay; encrypted-media"
+              frameBorder="0"
+              loading="lazy"
+            />
+            <button
+              onClick={handleToggleMute}
+              className="absolute bottom-2 right-2 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-background/60 text-foreground backdrop-blur-md border border-border/30 transition-all duration-200 hover:bg-background/80 hover:scale-110"
+              aria-label={isMuted ? 'Unmute' : 'Mute'}
+            >
+              {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+            </button>
+          </>
         )}
 
         {/* Overlay on hover (only when not playing) */}

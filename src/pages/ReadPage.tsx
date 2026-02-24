@@ -1,7 +1,8 @@
 import { useParams, Link } from 'react-router-dom';
 import { getDB } from '@/lib/db';
 import { PublicLayout } from '@/components/PublicLayout';
-import { useLanguageStore, useAuthStore } from '@/stores';
+import { useAuthStore } from '@/stores';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { getTranslation, t } from '@/lib/i18n';
 import { canAccessItem } from '@/lib/rbac';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
@@ -10,7 +11,7 @@ import { Crown, BookOpen, ArrowLeft, Lock, LogIn, UserPlus } from 'lucide-react'
 const ReadPage = () => {
   const { contentSlug } = useParams<{ contentSlug: string }>();
   const workspace = useWorkspace();
-  const { language } = useLanguageStore();
+  const { language } = useLanguage();
   const { session } = useAuthStore();
   const db = getDB();
   if (!db) return null;

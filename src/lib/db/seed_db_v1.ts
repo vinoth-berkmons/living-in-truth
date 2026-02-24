@@ -30,7 +30,7 @@ const USER_NORMAL = 'user-normal-004';
 
 // ========== Workspaces ==========
 const workspaces: Workspace[] = [
-  { id: WS_GLOBAL, name: 'Global', slug: 'global', status: 'active', enabledLanguages: ['en', 'ar'], defaultLanguage: 'en', themeOverride: { accentColor: '175 46% 44%' }, createdAt: now, updatedAt: now },
+  { id: WS_GLOBAL, name: 'Global', slug: 'global', status: 'active', enabledLanguages: ['en', 'ar', 'ta'], defaultLanguage: 'en', themeOverride: { accentColor: '175 46% 44%' }, createdAt: now, updatedAt: now },
   { id: WS_KIDS, name: 'Kids', slug: 'kids', status: 'active', enabledLanguages: ['en', 'ar'], defaultLanguage: 'en', themeOverride: { accentColor: '37 90% 55%' }, createdAt: now, updatedAt: now },
   { id: WS_YOUTH, name: 'Youth', slug: 'youth', status: 'active', enabledLanguages: ['en'], defaultLanguage: 'en', hideLanguageSwitcher: true, themeOverride: { accentColor: '262 52% 55%' }, createdAt: now, updatedAt: now },
   { id: WS_SINGLES, name: 'Singles', slug: 'singles', status: 'active', enabledLanguages: ['en'], defaultLanguage: 'en', hideLanguageSwitcher: true, themeOverride: { accentColor: '346 77% 55%' }, createdAt: now, updatedAt: now },

@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { getDB } from '@/lib/db';
 import { PublicLayout } from '@/components/PublicLayout';
-import { useLanguageStore, useAuthStore } from '@/stores';
+import { useAuthStore } from '@/stores';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { t } from '@/lib/i18n';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { AuthRepo } from '@/repos';
@@ -15,7 +16,7 @@ const LoginPage = ({ initialMode = 'login' }: LoginPageProps) => {
   const workspace = useWorkspace();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { language } = useLanguageStore();
+  const { language } = useLanguage();
   const { setSession } = useAuthStore();
   const [email, setEmail] = useState('');
   const [step, setStep] = useState<'email' | 'otp'>('email');

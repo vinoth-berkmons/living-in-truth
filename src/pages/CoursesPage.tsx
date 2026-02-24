@@ -1,14 +1,14 @@
 import { Link } from 'react-router-dom';
 import { getDB } from '@/lib/db';
 import { PublicLayout } from '@/components/PublicLayout';
-import { useLanguageStore } from '@/stores';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { getTranslation, t } from '@/lib/i18n';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { GraduationCap, Crown } from 'lucide-react';
 
 const CoursesPage = () => {
   const workspace = useWorkspace();
-  const { language } = useLanguageStore();
+  const { language } = useLanguage();
   const db = getDB();
   if (!db) return null;
 

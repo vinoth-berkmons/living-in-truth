@@ -3,7 +3,7 @@ import { getDB } from '@/lib/db';
 import { PublicLayout } from '@/components/PublicLayout';
 import { HeroCarousel } from '@/components/HeroCarousel';
 import { ContentRail, type MediaCardData } from '@/components/ContentRail';
-import { useLanguageStore } from '@/stores';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { getTranslation } from '@/lib/i18n';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import type { HomeSection, Language } from '@/types/entities';
@@ -11,7 +11,7 @@ import type { AppDatabase } from '@/types/db';
 
 const WorkspaceHome = () => {
   const workspace = useWorkspace();
-  const { language } = useLanguageStore();
+  const { language } = useLanguage();
   const db = getDB();
   if (!db) return null;
 

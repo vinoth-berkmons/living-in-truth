@@ -1,7 +1,8 @@
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { getDB } from '@/lib/db';
 import { PublicLayout } from '@/components/PublicLayout';
-import { useLanguageStore, useAuthStore } from '@/stores';
+import { useAuthStore } from '@/stores';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { t } from '@/lib/i18n';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { SubscriptionRepo } from '@/repos';
@@ -10,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 
 const PricingPage = () => {
   const workspace = useWorkspace();
-  const { language } = useLanguageStore();
+  const { language } = useLanguage();
   const { session } = useAuthStore();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();

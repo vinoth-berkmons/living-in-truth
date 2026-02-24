@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { getDB } from '@/lib/db';
 import { PublicLayout } from '@/components/PublicLayout';
-import { useLanguageStore } from '@/stores';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { getTranslation, t } from '@/lib/i18n';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { Search, Filter, Play, Clock, Crown, BookOpen, GraduationCap } from 'lucide-react';
@@ -11,7 +11,7 @@ import type { Language } from '@/types/entities';
 const ExplorePage = () => {
   const workspace = useWorkspace();
   const [searchParams] = useSearchParams();
-  const { language } = useLanguageStore();
+  const { language } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<string>(searchParams.get('type') || 'all');
   const [filterAccess, setFilterAccess] = useState<string>('all');

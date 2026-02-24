@@ -1,241 +1,204 @@
 
 
-# Domain-Based Workspace Resolution + Auth Gating Overhaul
+# Language System Overhaul: Per-Domain Language Selection
 
 ## Summary
-Replace `/w/:workspaceSlug/` URL routing with hostname-based workspace resolution. Public routes become flat (`/`, `/explore`, `/watch/:slug`). Header shows "LiT - Living in Truth" branding (or per-site logo via `themeOverride.logoUrl`). Auth gating is tightened with Sign In / Sign Up / Upgrade CTAs and redirect-back logic. Phase 0 subscribe flow uses `SubscriptionRepo.subscribe(planId)`.
+Replace the global `useLanguageStore` (zustand) with a hostname-keyed `LanguageContext` that resolves language per domain using `LIT_LANG_BY_HOST` in localStorage. Add a dedicated `/language` selection page with radio buttons, Save/Cancel. Ensure consistent translation fallback and include `selectedLanguage` in all analytics events via a UI-layer helper.
 
-**Key domain resolution rule**: If hostname IS mapped but workspace is disabled, show "Site Unavailable" page. Fall back to Couples workspace ONLY when hostname is unmapped (preview/unknown domains).
-
----
-
-## Step 1: New Entity + DB Schema
-
-**`src/types/entities.ts`** -- Add `WorkspaceDomain` interface:
-- `id`, `hostname` (unique), `workspaceId`, `isPrimary` (boolean), `createdAt`, `updatedAt`
-
-**`src/types/db.ts`** -- Add to `AppDatabase`:
-- `workspaceDomains: { byId: Record<string, WorkspaceDomain>; byHostname: Record<string, string> }` where `byHostname` maps hostname directly to workspaceId
-
-**`src/lib/db/config.ts`**:
-- Add `DEFAULT_WORKSPACE_SLUG = 'couples'`
-- Bump `CURRENT_DB_VERSION` to `3`
+User's requested tweaks applied:
+- `getStoredLanguage` returns `Language | null` (validates against `LANGUAGE_META` keys; unknown values treated as null)
+- `setStoredLanguage` accepts `Language` type only
+- `normalizeHostname` strips trailing dot and removes port in addition to lowercase + strip `www.`
+- `enabledLanguages` always has `'en'` forced in memory in LanguageContext init
+- LanguagePage redirect when `hideLanguageSwitcher` is true goes to `returnTo` if present, else `/`
 
 ---
 
-## Step 2: Workspace Resolver
+## Step 1: Expand Language Type and Add Metadata
 
-**New file: `src/lib/resolveWorkspace.ts`**
+**File: `src/types/entities.ts`** (line 3)
+- Change `Language` type to include `'ta'` and `'hi'`
+- Add `LANGUAGE_META` constant after the type:
 
-Synchronous function using `getDB()`:
-1. Normalize hostname: lowercase + strip `www.` prefix
-2. Look up `db.workspaceDomains.byHostname[normalizedHostname]` to get workspaceId directly
-3. If found AND workspace is active: return `{ workspace, status: 'active' }`
-4. If found AND workspace is disabled: return `{ workspace: null, status: 'disabled' }`
-5. If NOT found (unmapped hostname like Lovable preview): fall back to workspace with `slug === 'couples'`, return `{ workspace, status: 'active' }`
+```typescript
+export type Language = 'en' | 'ar' | 'fr' | 'es' | 'de' | 'tr' | 'ta' | 'hi';
 
----
-
-## Step 3: Workspace Context
-
-**New file: `src/contexts/WorkspaceContext.tsx`**
-
-- React context wrapping the app inside `BrowserRouter`
-- On mount: calls `initDB()` synchronously (it's already sync), then `resolveWorkspace()`
-- Provides `workspace` and `status` to all children via `useWorkspace()` hook
-- If `status === 'disabled'`, renders a full-page "Site Unavailable" message instead of children
-
----
-
-## Step 4: Seed Domain Data
-
-**Update `src/lib/db/seed_db_v1.ts`**:
-- Add 7 `WorkspaceDomain` records mapping hostnames directly to workspace IDs:
-  - `globallivingtruth.com` -> `ws-global-001`
-  - `kidslivingtruth.com` -> `ws-kids-002`
-  - `youthlivingtruth.com` -> `ws-youth-003`
-  - `singleslivingtruth.com` -> `ws-singles-004`
-  - `coupleslivingtruth.com` -> `ws-couples-005` (isPrimary)
-  - `handmadeslivingtruth.com` -> `ws-handmades-006`
-  - `servantslivingtruth.com` -> `ws-servants-007`
-- Build `byHostname` index mapping hostname to workspaceId
-- Set `version: 3`
-
----
-
-## Step 5: Route Restructuring
-
-**Update `src/App.tsx`**:
-- Wrap all routes in `WorkspaceProvider`
-- Remove all `/w/:workspaceSlug/` prefixed routes
-- New flat public routes:
-
-```text
-/                                   -> WorkspaceHome
-/explore                            -> ExplorePage
-/category/:catSlug                  -> CategoryPage
-/watch/:videoSlug                   -> WatchPage
-/read/:contentSlug                  -> ReadPage
-/courses                            -> CoursesPage
-/course/:courseSlug                 -> CourseLandingPage
-/course/:courseSlug/lesson/:lessonId -> LessonPage
-/pricing                            -> PricingPage
-/login                              -> LoginPage
-/signup                             -> LoginPage (signup mode)
-/account                            -> AccountPage
+export const LANGUAGE_META: Record<Language, { english: string; native: string }> = {
+  en: { english: 'English', native: 'English' },
+  ar: { english: 'Arabic', native: 'العربية' },
+  fr: { english: 'French', native: 'Français' },
+  es: { english: 'Spanish', native: 'Español' },
+  de: { english: 'German', native: 'Deutsch' },
+  tr: { english: 'Turkish', native: 'Türkçe' },
+  ta: { english: 'Tamil', native: 'தமிழ்' },
+  hi: { english: 'Hindi', native: 'हिन्दी' },
+};
 ```
 
-- Admin routes stay unchanged (`/admin/*`)
-- Remove `Index` workspace-selector page (no longer needed)
+---
+
+## Step 2: Hostname-Keyed localStorage Helpers
+
+**New file: `src/lib/languageStorage.ts`**
+
+- `normalizeHostname(hostname)`: lowercase, remove port (`:` onwards), strip trailing dot, strip `www.` prefix
+- `getStoredLanguage(hostname): Language | null`: reads `LIT_LANG_BY_HOST` JSON, validates value exists in `LANGUAGE_META` keys, returns `Language` or `null`
+- `setStoredLanguage(hostname, lang: Language): void`: reads/merges/writes JSON
+- Storage key constant: `LIT_LANG_BY_HOST`
 
 ---
 
-## Step 6: Header Branding + Navigation
+## Step 3: Create LanguageContext
 
-**Update `src/components/PublicLayout.tsx`**:
+**New file: `src/contexts/LanguageContext.tsx`**
 
-- **Left**: Show "LiT" monogram + "Living in Truth" text. If workspace has `themeOverride.logoUrl`, use that image instead of the monogram. Never show workspace name like "Global".
-- **Center nav**: Links point to `/explore`, `/courses`, `/pricing` (no workspace slug prefix)
-- **Right auth section**:
-  - Logged out: "Sign In" button -> `/login`, "Sign Up" button -> `/signup`
-  - Logged in: avatar -> `/account`
-- **Footer**: Remove "Workspaces" section. Update all links to flat paths.
-- Receive workspace from `useWorkspace()` context instead of props
-
----
-
-## Step 7: Update All Pages (useWorkspace + flat links)
-
-Every public page changes from `useParams<{ workspaceSlug }>()` to `useWorkspace()` and removes `/w/${workspace.slug}` from all link targets.
-
-| File | Key Changes |
-|------|-------------|
-| `WorkspaceHome.tsx` | `useWorkspace()`, flat hrefs in rails and categories |
-| `ExplorePage.tsx` | `useWorkspace()`, flat hrefs in results |
-| `CategoryPage.tsx` | `useWorkspace()`, flat hrefs |
-| `WatchPage.tsx` | `useWorkspace()`, enhanced locked CTA |
-| `ReadPage.tsx` | `useWorkspace()`, enhanced locked CTA |
-| `CoursesPage.tsx` | `useWorkspace()`, flat hrefs |
-| `CourseLandingPage.tsx` | `useWorkspace()`, enhanced locked CTA |
-| `LessonPage.tsx` | `useWorkspace()`, enhanced locked CTA |
-| `PricingPage.tsx` | `useWorkspace()`, subscribe modal, redirect |
-| `LoginPage.tsx` | `useWorkspace()`, signup mode, redirect support |
-| `AccountPage.tsx` | `useWorkspace()`, subscription display |
-| `HeroCarousel.tsx` | Remove `/w/${workspace.slug}` from resolved hrefs |
+- Depends on `WorkspaceContext` (uses `useWorkspace()`)
+- On init:
+  1. Get workspace from `useWorkspace()`
+  2. Compute `enabledLanguages` = workspace.enabledLanguages, force-add `'en'` if not present
+  3. Normalize hostname via `normalizeHostname(window.location.hostname)`
+  4. Read stored language via `getStoredLanguage(hostname)`
+  5. If stored value is null or not in `enabledLanguages`, default to `'en'`
+- Exposes via `useLanguage()` hook:
+  - `language: Language`
+  - `setLanguage(lang: Language)` -- validates against enabledLanguages, updates state + persists
+  - `enabledLanguages: Language[]`
+  - `hideLanguageSwitcher: boolean`
 
 ---
 
-## Step 8: Login + Signup
+## Step 4: Wire LanguageContext into App
 
-**Update `src/pages/LoginPage.tsx`**:
-- Accept `initialMode` prop: `'login'` (default) or `'signup'`
-- Read `?redirect=` query param from URL
-- After successful login: navigate to redirect URL (or `/`)
-- Toggle link between modes: "Don't have an account? Sign up" / "Already have an account? Sign in"
-- Phase 0: signup uses same mock flow as login (different UI text)
-
-**In `src/App.tsx`**:
+**File: `src/App.tsx`**
+- Import `LanguageProvider` from `@/contexts/LanguageContext`
+- Nest inside `WorkspaceProvider`:
 ```tsx
-<Route path="/login" element={<LoginPage />} />
-<Route path="/signup" element={<LoginPage initialMode="signup" />} />
+<WorkspaceProvider>
+  <LanguageProvider>
+    <Routes>...</Routes>
+  </LanguageProvider>
+</WorkspaceProvider>
 ```
+- Add route: `<Route path="/language" element={<LanguagePage />} />`
 
 ---
 
-## Step 9: Enhanced Auth Gating (Locked Content)
+## Step 5: Create Language Selection Page
 
-For WatchPage, ReadPage, LessonPage, and CourseLandingPage:
+**New file: `src/pages/LanguagePage.tsx`**
 
-- **If logged out**: "Sign In" -> `/login?redirect=/watch/current-slug`, "Sign Up" -> `/signup?redirect=/watch/current-slug`, "View Plans" -> `/pricing`
-- **If logged in but no access**: "Upgrade" heading, show global plans first, then "This site" workspace plans (where `plan.scope === 'workspace' && plan.workspaceId === workspace.id`). "Subscribe" buttons on each plan.
-- **If logged in with access**: Show content normally
-
----
-
-## Step 10: Pricing Page Subscribe Flow (Phase 0)
-
-**Add `subscribe()` to `src/repos/planAndAuthRepo.ts`**:
-- Public method: gets current userId from session, looks up plan for interval duration, creates `UserSubscription` with `provider='local'`
-- Keep `adminAssignPlan` for admin use only
-
-**Update `src/pages/PricingPage.tsx`**:
-- If logged out: "Subscribe" links to `/login?redirect=/pricing`
-- If logged in: clicking opens a confirm dialog -> calls `SubscriptionRepo.subscribe(planId)` -> redirect to `?redirect` param or `/account` -> toast confirmation
-- Plans ordering: global plans first, then workspace plans filtered by `plan.workspaceId === workspace.id`
+- Route: `/language`
+- Wrapped in `PublicLayout`
+- Reads `?returnTo=` query param
+- Uses `useLanguage()` for `enabledLanguages`, current `language`, `hideLanguageSwitcher`
+- If `hideLanguageSwitcher` is true: redirect to `returnTo` if present, else `/`
+- UI:
+  - Title: "Choose Language" (i18n key `lang.choose`)
+  - Radio group listing each enabled language: "English name / native name" (from `LANGUAGE_META`)
+  - Local state initialized to current `language`
+  - **Save** button (primary): calls `setLanguage(selected)`, navigates to `returnTo` or `/`
+  - **Cancel** button (secondary): navigates to `returnTo` or `/` without changes
 
 ---
 
-## Step 11: Account Page Enhancements
+## Step 6: Update Header Language Button
 
-**Update `src/pages/AccountPage.tsx`**:
-- Active subscriptions with scope labels: "All Sites" for global, `workspace.name` (display name, not slug) for workspace-scoped
-- Current site access status: "Premium Unlocked" or "Free Only"
-- Quick link to `/pricing`
+**File: `src/components/PublicLayout.tsx`**
 
----
-
-## Step 12: Admin Domain Management
-
-**New file: `src/repos/workspaceDomainRepo.ts`**:
-- `list(workspaceId?)`: list domains, optionally filtered
-- `create(hostname, workspaceId, isPrimary)`: normalizes hostname, validates uniqueness globally, creates record + updates `byHostname` index
-- `delete(domainId)`: removes record and index entry
-- `setPrimary(domainId)`: sets isPrimary, unsets others for same workspace
-
-**Update `src/pages/admin/AdminWorkspaces.tsx`**:
-- "Domains" section per workspace: list hostnames with isPrimary indicator
-- Add/remove hostname inputs
-- Warning if workspace has no primary domain
-
-**Update `src/repos/index.ts`**: export `WorkspaceDomainRepo`
+- Replace the inline `<select>` dropdown (lines 86-99) with a Globe icon button showing current language code uppercase (e.g., "EN")
+- Clicking navigates to `/language?returnTo=${encodeURIComponent(location.pathname + location.search)}`
+- Hide if `hideLanguageSwitcher` is true OR `enabledLanguages.length <= 1`
+- Replace `useLanguageStore` import with `useLanguage` from `@/contexts/LanguageContext`
+- Remove `setLanguage` destructuring (no longer needed in header)
 
 ---
 
-## Step 13: Lock Badge on Content Cards
+## Step 7: Replace useLanguageStore in All Public Pages
 
-Verify `ContentRail.tsx` and explore results consistently show a lock/crown badge on premium items across all card types (video, article, course).
+Each file: replace `import { useLanguageStore } from '@/stores'` with `import { useLanguage } from '@/contexts/LanguageContext'`, and change `const { language } = useLanguageStore()` to `const { language } = useLanguage()`.
+
+Files (12 total):
+- `src/pages/WorkspaceHome.tsx` (line 6 import, line 14 usage)
+- `src/pages/ExplorePage.tsx` (line 5 import, line 14 usage)
+- `src/pages/CategoryPage.tsx` (line 4 import, line 12 usage)
+- `src/pages/WatchPage.tsx` (line 4 import, line 15 usage)
+- `src/pages/ReadPage.tsx` (line 4 import, line 13 usage)
+- `src/pages/CoursesPage.tsx` (line 4 import, line 11 usage)
+- `src/pages/CourseLandingPage.tsx` (line 4 import, line 13 usage)
+- `src/pages/LessonPage.tsx` (line 4 import, line 14 usage)
+- `src/pages/PricingPage.tsx` (line 4 import, line 13 usage)
+- `src/pages/LoginPage.tsx` (line 5 import, line 18 usage)
+- `src/pages/AccountPage.tsx` (line 4 import, line 13 usage)
+- `src/components/PublicLayout.tsx` (line 2 import, line 19 usage) -- handled in Step 6
+
+Note: `HeroCarousel.tsx` receives `language` as a prop from its parent, so no change needed.
 
 ---
 
-## Step 14: Cleanup
+## Step 8: Update i18n Strings
 
-- Remove or repurpose `src/pages/Index.tsx` (workspace selector no longer needed)
-- Remove `src/components/NavLink.tsx` if unused
-- Remove any remaining `/w/:slug` references
+**File: `src/lib/i18n.ts`**
+
+- The `strings` record type already uses `Record<Language, string>`, so adding `ta` and `hi` to the Language type means each entry needs those keys. Add them with English fallback values.
+- Add new i18n keys:
+  - `'lang.choose'`: "Choose Language"
+  - `'lang.save'`: "Save"
+  - `'lang.cancel'`: "Cancel"
+
+---
+
+## Step 9: Content Translation Fallback
+
+The existing `getTranslation()` already returns `translations[lang] ?? translations.en ?? undefined`. Update call sites to show `"(Translation not available)"` when the result is undefined. This affects title/description rendering in WatchPage, ReadPage, CourseLandingPage, LessonPage, WorkspaceHome, ExplorePage, CategoryPage, and HeroCarousel.
+
+---
+
+## Step 10: Analytics Language via useTrackEvent Hook
+
+Create a small `useTrackEvent()` hook (in a new file or alongside `LanguageContext`) that:
+- Gets `workspace` from `useWorkspace()` and `language` from `useLanguage()`
+- Returns a `trackEvent(type, metadata?)` function that calls `EventRepo.track({ type, workspaceId: workspace.id, language, ...metadata })`
+- Pages that currently call `EventRepo.track()` directly should use this hook instead
+
+---
+
+## Step 11: Seed Data Update
+
+**File: `src/lib/db/seed_db_v1.ts`** (line 33)
+- Add `'ta'` to Global workspace's `enabledLanguages`: `['en', 'ar', 'ta']`
+
+---
+
+## Step 12: Cleanup
+
+**File: `src/stores/index.ts`** (lines 46-60)
+- Remove the `useLanguageStore` export entirely (LanguageState interface, create call, persist config)
 
 ---
 
 ## Files Summary
 
 **New files (3):**
-- `src/lib/resolveWorkspace.ts`
-- `src/contexts/WorkspaceContext.tsx`
-- `src/repos/workspaceDomainRepo.ts`
+- `src/lib/languageStorage.ts`
+- `src/contexts/LanguageContext.tsx`
+- `src/pages/LanguagePage.tsx`
 
-**Deleted/repurposed (1-2):**
-- `src/pages/Index.tsx` (removed)
-- `src/components/NavLink.tsx` (removed if unused)
-
-**Modified files (20):**
-- `src/types/entities.ts` -- add WorkspaceDomain
-- `src/types/db.ts` -- add workspaceDomains to AppDatabase
-- `src/lib/db/config.ts` -- add DEFAULT_WORKSPACE_SLUG, bump version to 3
-- `src/lib/db/seed_db_v1.ts` -- add domain seed data, version 3
-- `src/App.tsx` -- flat routes, WorkspaceProvider, /signup route
-- `src/components/PublicLayout.tsx` -- LiT branding, flat links, Sign In + Sign Up
-- `src/components/HeroCarousel.tsx` -- flat hrefs
-- `src/pages/WorkspaceHome.tsx` -- useWorkspace(), flat links
-- `src/pages/ExplorePage.tsx` -- useWorkspace(), flat links
-- `src/pages/CategoryPage.tsx` -- useWorkspace(), flat links
-- `src/pages/WatchPage.tsx` -- useWorkspace(), enhanced locked CTA
-- `src/pages/ReadPage.tsx` -- useWorkspace(), enhanced locked CTA
-- `src/pages/CoursesPage.tsx` -- useWorkspace(), flat links
-- `src/pages/CourseLandingPage.tsx` -- useWorkspace(), enhanced locked CTA
-- `src/pages/LessonPage.tsx` -- useWorkspace(), enhanced locked CTA
-- `src/pages/PricingPage.tsx` -- useWorkspace(), subscribe modal
-- `src/pages/LoginPage.tsx` -- signup mode, redirect support
-- `src/pages/AccountPage.tsx` -- subscription display, access status
-- `src/pages/admin/AdminWorkspaces.tsx` -- domain management section
-- `src/repos/planAndAuthRepo.ts` -- add subscribe() method
-- `src/repos/index.ts` -- export WorkspaceDomainRepo
+**Modified files (16):**
+- `src/types/entities.ts` -- expand Language type, add LANGUAGE_META
+- `src/lib/i18n.ts` -- add ta/hi columns, new lang.* keys
+- `src/App.tsx` -- add LanguageProvider, /language route
+- `src/components/PublicLayout.tsx` -- Globe button, useLanguage()
+- `src/stores/index.ts` -- remove useLanguageStore
+- `src/lib/db/seed_db_v1.ts` -- add 'ta' to Global enabledLanguages
+- `src/pages/WorkspaceHome.tsx` -- useLanguage()
+- `src/pages/ExplorePage.tsx` -- useLanguage()
+- `src/pages/CategoryPage.tsx` -- useLanguage()
+- `src/pages/WatchPage.tsx` -- useLanguage()
+- `src/pages/ReadPage.tsx` -- useLanguage()
+- `src/pages/CoursesPage.tsx` -- useLanguage()
+- `src/pages/CourseLandingPage.tsx` -- useLanguage()
+- `src/pages/LessonPage.tsx` -- useLanguage()
+- `src/pages/PricingPage.tsx` -- useLanguage()
+- `src/pages/LoginPage.tsx` -- useLanguage()
+- `src/pages/AccountPage.tsx` -- useLanguage()
 

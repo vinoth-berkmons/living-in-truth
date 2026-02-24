@@ -23,7 +23,7 @@ export const useThemeStore = create<ThemeState>()(
         set({ isDark: dark });
       },
     }),
-    { name: 'lit-theme' }
+    { name: 'lit-theme-v2' }
   )
 );
 

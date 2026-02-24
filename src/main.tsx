@@ -6,7 +6,7 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 
 // Apply dark theme before React renders to prevent flash
 try {
-  const stored = localStorage.getItem('lit-theme');
+  const stored = localStorage.getItem('lit-theme-v2');
   if (stored) {
     const parsed = JSON.parse(stored);
     document.documentElement.classList.toggle('dark', parsed.state?.isDark ?? true);

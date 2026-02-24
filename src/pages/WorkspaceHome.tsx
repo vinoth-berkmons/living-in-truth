@@ -8,17 +8,39 @@ import { getTranslation } from '@/lib/i18n';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import type { HomeSection, Language } from '@/types/entities';
 import type { AppDatabase } from '@/types/db';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useEffect, useRef, useState } from 'react';
 
 const WorkspaceHome = () => {
   const workspace = useWorkspace();
   const { language } = useLanguage();
   const db = getDB();
-  if (!db) return null;
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsInitialLoading(false), 700);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!db) {
+    return (
+      <PublicLayout>
+        <HomeLoadingSkeleton />
+      </PublicLayout>
+    );
+  }
 
   const sectionIds = db.homeSections.orderByWorkspaceId[workspace.id] || [];
   const sections = sectionIds.map(id => db.homeSections.byId[id]).filter(Boolean) as HomeSection[];
   const categories = Object.values(db.categories.byId).filter(c => c.workspaceId === workspace.id);
+
+  if (isInitialLoading) {
+    return (
+      <PublicLayout>
+        <HomeLoadingSkeleton />
+      </PublicLayout>
+    );
+  }
 
   return (
     <PublicLayout>
@@ -66,6 +88,44 @@ const WorkspaceHome = () => {
     </PublicLayout>
   );
 };
+
+function HomeLoadingSkeleton() {
+  return (
+    <div className="space-y-8 px-6 py-6 md:px-12">
+      <section className="relative overflow-hidden rounded-2xl border border-border/40 bg-card/60 p-6 md:p-10">
+        <div className="space-y-4 max-w-2xl">
+          <Skeleton className="h-5 w-32 rounded-full" />
+          <Skeleton className="h-10 w-full md:h-14" />
+          <Skeleton className="h-10 w-5/6 md:h-14" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-4/5" />
+          <div className="flex gap-3 pt-2">
+            <Skeleton className="h-11 w-36 rounded-xl" />
+            <Skeleton className="h-11 w-32 rounded-xl" />
+          </div>
+        </div>
+      </section>
+
+      {[0, 1].map((rail) => (
+        <section key={rail} className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-7 w-48" />
+            <Skeleton className="h-6 w-20" />
+          </div>
+          <div className="flex gap-4 overflow-hidden">
+            {[0, 1, 2, 3].map((card) => (
+              <div key={card} className="min-w-[220px] space-y-3 md:min-w-[280px]">
+                <Skeleton className="aspect-video w-full rounded-xl" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-2/3" />
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
 
 function CategoriesSection({ categories, language }: { categories: any[]; language: Language }) {
   const sectionRef = useRef<HTMLElement>(null);

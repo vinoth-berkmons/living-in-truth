@@ -2,7 +2,7 @@ import type { AppDatabase } from '@/types/db';
 import type {
   Workspace, User, Role, UserWorkspaceRole,
   Category, ContentItem, VideoItem, Course, Module, Lesson,
-  HomeSection, Plan, UserSubscription,
+  HomeSection, Plan, UserSubscription, WorkspaceDomain,
 } from '@/types/entities';
 
 const now = '2025-01-01T00:00:00.000Z';
@@ -380,9 +380,26 @@ function buildOrderIndex(items: { id: string; workspaceId: string; sortOrder: nu
   return idx;
 }
 
+// ========== Workspace Domains ==========
+const workspaceDomains: WorkspaceDomain[] = [
+  { id: 'domain-global', hostname: 'globallivingtruth.com', workspaceId: WS_GLOBAL, isPrimary: true, createdAt: now, updatedAt: now },
+  { id: 'domain-kids', hostname: 'kidslivingtruth.com', workspaceId: WS_KIDS, isPrimary: true, createdAt: now, updatedAt: now },
+  { id: 'domain-youth', hostname: 'youthlivingtruth.com', workspaceId: WS_YOUTH, isPrimary: true, createdAt: now, updatedAt: now },
+  { id: 'domain-singles', hostname: 'singleslivingtruth.com', workspaceId: WS_SINGLES, isPrimary: true, createdAt: now, updatedAt: now },
+  { id: 'domain-couples', hostname: 'coupleslivingtruth.com', workspaceId: WS_COUPLES, isPrimary: true, createdAt: now, updatedAt: now },
+  { id: 'domain-handmades', hostname: 'handmadeslivingtruth.com', workspaceId: WS_HANDMADES, isPrimary: true, createdAt: now, updatedAt: now },
+  { id: 'domain-servants', hostname: 'servantslivingtruth.com', workspaceId: WS_SERVANTS, isPrimary: true, createdAt: now, updatedAt: now },
+];
+
+function buildHostnameIndex(domains: WorkspaceDomain[]): Record<string, string> {
+  const idx: Record<string, string> = {};
+  for (const d of domains) idx[d.hostname] = d.workspaceId;
+  return idx;
+}
+
 // ========== Export ==========
 export const SEED_DB_V1: AppDatabase = {
-  version: 2,
+  version: 3,
 
   workspaces: { byId: toById(workspaces) },
   users: { byId: toById(users) },
@@ -398,6 +415,7 @@ export const SEED_DB_V1: AppDatabase = {
   homeSections: { byId: toById(homeSections), orderByWorkspaceId: buildOrderIndex(homeSections) },
   plans: { byId: toById(plans) },
   subscriptions: { byId: {}, idsByUserId: {} },
+  workspaceDomains: { byId: toById(workspaceDomains), byHostname: buildHostnameIndex(workspaceDomains) },
   events: [],
   progress: [],
   session: null,

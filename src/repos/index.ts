@@ -6,3 +6,4 @@ export { CategoryRepo } from './categoryRepo';
 export { HomeSectionRepo } from './homeSectionRepo';
 export { PlanRepo, SubscriptionRepo, AuthRepo, UserAdminRepo } from './planAndAuthRepo';
 export { EventRepo, ProgressRepo } from './eventAndProgressRepo';
+export { WorkspaceDomainRepo } from './workspaceDomainRepo';

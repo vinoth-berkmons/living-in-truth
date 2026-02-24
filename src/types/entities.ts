@@ -290,6 +290,17 @@ export interface UserProgress {
   videoPositions: Record<string, number>; // videoId → seconds
 }
 
+// ========== Workspace Domains ==========
+
+export interface WorkspaceDomain {
+  id: string;
+  hostname: string;
+  workspaceId: string;
+  isPrimary: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ========== Session ==========
 
 export interface Session {

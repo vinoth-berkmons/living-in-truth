@@ -3,16 +3,17 @@ import { getDB } from '@/lib/db';
 import { PublicLayout } from '@/components/PublicLayout';
 import { useLanguageStore, useAuthStore } from '@/stores';
 import { getTranslation, t } from '@/lib/i18n';
-import { GraduationCap, Crown, ChevronDown, ChevronUp, Play, BookOpen, ArrowLeft } from 'lucide-react';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { GraduationCap, Crown, ChevronDown, ChevronUp, Play, BookOpen, ArrowLeft, LogIn, UserPlus } from 'lucide-react';
 import { useState } from 'react';
 
 const CourseLandingPage = () => {
-  const { workspaceSlug, courseSlug } = useParams<{ workspaceSlug: string; courseSlug: string }>();
+  const { courseSlug } = useParams<{ courseSlug: string }>();
+  const workspace = useWorkspace();
   const { language } = useLanguageStore();
   const { session } = useAuthStore();
   const db = getDB();
-  const workspace = db ? Object.values(db.workspaces.byId).find(w => w.slug === workspaceSlug && w.status === 'active') : undefined;
-  if (!workspace || !db) return <div className="flex min-h-screen items-center justify-center bg-background"><p>{t('site.unavailable', language)}</p></div>;
+  if (!db) return null;
 
   const courseId = db.courses.slugIndex[workspace.id]?.[courseSlug!];
   const course = courseId ? db.courses.byId[courseId] : undefined;
@@ -22,7 +23,6 @@ const CourseLandingPage = () => {
   const modules = course.moduleIds.map(id => db.modules.byId[id]).filter(Boolean);
   const enrolled = session ? db.progress.some(p => p.userId === session.userId && p.courseId === course.id) : false;
 
-  // Cover image
   const firstModId = course.moduleIds[0];
   const firstMod = firstModId ? db.modules.byId[firstModId] : undefined;
   const firstLessonId = firstMod?.lessonIds[0];
@@ -31,9 +31,10 @@ const CourseLandingPage = () => {
   const coverUrl = coverVideo?.coverImageUrl ?? 'https://images.unsplash.com/photo-1504052434569-70ad5836ab65?w=800&q=80';
 
   const totalLessons = modules.reduce((acc, m) => acc + (m?.lessonIds.length ?? 0), 0);
+  const currentPath = `/course/${courseSlug}`;
 
   return (
-    <PublicLayout workspace={workspace}>
+    <PublicLayout>
       {/* Hero */}
       <div className="relative h-[45vh] min-h-[350px] overflow-hidden">
         <img src={coverUrl} alt="" className="h-full w-full object-cover" />
@@ -41,7 +42,7 @@ const CourseLandingPage = () => {
         <div className="hero-overlay-side absolute inset-0" />
         <div className="relative z-10 flex h-full items-end pb-10">
           <div className="container mx-auto px-6 md:px-12">
-            <Link to={`/w/${workspace.slug}/courses`} className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+            <Link to="/courses" className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
               <ArrowLeft className="h-3 w-3" />{t('common.back', language)}
             </Link>
             <div className="mb-2 flex items-center gap-2">
@@ -63,9 +64,18 @@ const CourseLandingPage = () => {
             </div>
             <div className="mt-5">
               {enrolled ? (
-                <Link to={`/w/${workspace.slug}/course/${course.slug}/lesson/${modules[0]?.lessonIds[0] || ''}`} className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground hover:bg-primary/90">
+                <Link to={`/course/${course.slug}/lesson/${modules[0]?.lessonIds[0] || ''}`} className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground hover:bg-primary/90">
                   <Play className="h-4 w-4" />{t('course.continue', language)}
                 </Link>
+              ) : course.access === 'premium' && !session ? (
+                <div className="flex items-center gap-3">
+                  <Link to={`/login?redirect=${currentPath}`} className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground hover:bg-primary/90">
+                    <LogIn className="h-4 w-4" />Sign In
+                  </Link>
+                  <Link to={`/signup?redirect=${currentPath}`} className="inline-flex items-center gap-2 rounded-lg border border-primary px-6 py-3 font-semibold text-primary hover:bg-primary/5">
+                    <UserPlus className="h-4 w-4" />Sign Up
+                  </Link>
+                </div>
               ) : (
                 <button className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground hover:bg-primary/90">
                   <GraduationCap className="h-4 w-4" />{t('course.enroll', language)}
@@ -82,7 +92,7 @@ const CourseLandingPage = () => {
         <div className="space-y-3">
           {modules.map((mod, mi) => {
             if (!mod) return null;
-            return <ModuleAccordion key={mod.id} mod={mod} mi={mi} db={db} workspace={workspace} course={course} language={language} defaultOpen={mi === 0} />;
+            return <ModuleAccordion key={mod.id} mod={mod} mi={mi} db={db} course={course} language={language} defaultOpen={mi === 0} />;
           })}
         </div>
       </div>
@@ -90,7 +100,7 @@ const CourseLandingPage = () => {
   );
 };
 
-function ModuleAccordion({ mod, mi, db, workspace, course, language, defaultOpen }: { mod: any; mi: number; db: any; workspace: any; course: any; language: any; defaultOpen: boolean }) {
+function ModuleAccordion({ mod, mi, db, course, language, defaultOpen }: { mod: any; mi: number; db: any; course: any; language: any; defaultOpen: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
   const modTr = getTranslation(mod.translations, language) as { title?: string } | undefined;
   const lessons = mod.lessonIds.map((id: string) => db.lessons.byId[id]).filter(Boolean);
@@ -110,7 +120,7 @@ function ModuleAccordion({ mod, mi, db, workspace, course, language, defaultOpen
           {lessons.map((lesson: any, li: number) => {
             const lTr = getTranslation(lesson.translations, language) as { title?: string; summary?: string } | undefined;
             return (
-              <Link key={lesson.id} to={`/w/${workspace.slug}/course/${course.slug}/lesson/${lesson.id}`} className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-secondary">
+              <Link key={lesson.id} to={`/course/${course.slug}/lesson/${lesson.id}`} className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-secondary">
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">{li + 1}</span>
                 <div className="flex-1">
                   <span className="line-clamp-1">{lTr?.title ?? 'Untitled'}</span>

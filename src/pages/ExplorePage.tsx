@@ -1,14 +1,15 @@
 import { useState, useMemo } from 'react';
-import { useParams, Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { getDB } from '@/lib/db';
 import { PublicLayout } from '@/components/PublicLayout';
 import { useLanguageStore } from '@/stores';
 import { getTranslation, t } from '@/lib/i18n';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { Search, Filter, Play, Clock, Crown, BookOpen, GraduationCap } from 'lucide-react';
 import type { Language } from '@/types/entities';
 
 const ExplorePage = () => {
-  const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
+  const workspace = useWorkspace();
   const [searchParams] = useSearchParams();
   const { language } = useLanguageStore();
   const [searchQuery, setSearchQuery] = useState('');
@@ -17,12 +18,14 @@ const ExplorePage = () => {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
 
   const db = getDB();
-  const workspace = db ? Object.values(db.workspaces.byId).find(w => w.slug === workspaceSlug && w.status === 'active') : undefined;
-  if (!workspace || !db) return <div className="flex min-h-screen items-center justify-center bg-background"><p className="text-foreground">{t('site.unavailable', language)}</p></div>;
 
-  const categories = Object.values(db.categories.byId).filter(c => c.workspaceId === workspace.id);
+  const categories = useMemo(() => {
+    if (!db) return [];
+    return Object.values(db.categories.byId).filter(c => c.workspaceId === workspace.id);
+  }, [db, workspace.id]);
 
   const allItems = useMemo(() => {
+    if (!db) return [];
     const results: ExploreItem[] = [];
 
     if (filterType === 'all' || filterType === 'article' || filterType === 'blog') {
@@ -33,7 +36,7 @@ const ExplorePage = () => {
           const tr = getTranslation(item.translations, language);
           results.push({
             id: item.id, title: tr?.title ?? '', excerpt: tr?.excerpt,
-            coverImageUrl: item.coverImageUrl, href: `/w/${workspace.slug}/read/${item.slug}`,
+            coverImageUrl: item.coverImageUrl, href: `/read/${item.slug}`,
             type: item.type, access: item.access, categoryIds: item.categoryIds,
           });
         });
@@ -46,7 +49,7 @@ const ExplorePage = () => {
           const tr = getTranslation(item.translations, language);
           results.push({
             id: item.id, title: tr?.title ?? '', excerpt: tr?.description,
-            coverImageUrl: item.coverImageUrl, href: `/w/${workspace.slug}/watch/${item.slug}`,
+            coverImageUrl: item.coverImageUrl, href: `/watch/${item.slug}`,
             type: 'video', access: item.access, categoryIds: item.categoryIds,
             format: item.format, durationSeconds: item.durationSeconds,
           });
@@ -60,7 +63,7 @@ const ExplorePage = () => {
           const tr = getTranslation(item.translations, language);
           results.push({
             id: item.id, title: tr?.title ?? '', excerpt: tr?.description,
-            href: `/w/${workspace.slug}/course/${item.slug}`,
+            href: `/course/${item.slug}`,
             type: 'course', access: item.access, categoryIds: item.categoryIds,
             moduleCount: item.moduleIds.length,
           });
@@ -68,7 +71,7 @@ const ExplorePage = () => {
     }
 
     return results;
-  }, [db, workspace, filterType, language]);
+  }, [db, workspace.id, filterType, language]);
 
   const filtered = useMemo(() => {
     let items = allItems;
@@ -85,6 +88,8 @@ const ExplorePage = () => {
     return items;
   }, [allItems, searchQuery, filterAccess, selectedCategoryId]);
 
+  if (!db) return null;
+
   const typeFilters = [
     { value: 'all', label: t('explore.all', language) },
     { value: 'video', label: t('nav.videos', language) },
@@ -93,7 +98,7 @@ const ExplorePage = () => {
   ];
 
   return (
-    <PublicLayout workspace={workspace}>
+    <PublicLayout>
       <div className="flex min-h-[80vh]">
         {/* Sidebar */}
         <aside className="hidden w-64 flex-shrink-0 border-r border-border/50 bg-surface/50 p-6 lg:block">
@@ -136,7 +141,6 @@ const ExplorePage = () => {
 
           {/* Filters */}
           <div className="mb-6 flex flex-wrap items-center gap-2">
-            {/* Type filters */}
             {typeFilters.map(f => (
               <button
                 key={f.value}
@@ -185,19 +189,16 @@ const ExplorePage = () => {
                   {item.coverImageUrl && (
                     <img src={item.coverImageUrl} alt={item.title} loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
                   )}
-                  {/* Play overlay for videos */}
                   {item.type === 'video' && (
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                       <div className="rounded-full bg-primary p-3"><Play className="h-5 w-5 text-primary-foreground" fill="currentColor" /></div>
                     </div>
                   )}
-                  {/* Duration */}
                   {item.durationSeconds && (
                     <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded bg-background/80 px-1.5 py-0.5 text-xs font-medium text-foreground backdrop-blur-sm">
                       <Clock className="h-3 w-3" />{formatDuration(item.durationSeconds)}
                     </div>
                   )}
-                  {/* Premium badge */}
                   {item.access === 'premium' && (
                     <div className="absolute left-2 top-2 flex items-center gap-1 rounded bg-accent/90 px-1.5 py-0.5 text-xs font-semibold text-accent-foreground">
                       <Crown className="h-3 w-3" />{t('common.premium', language)}

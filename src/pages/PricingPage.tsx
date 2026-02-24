@@ -1,22 +1,45 @@
-import { useParams, Link } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { getDB } from '@/lib/db';
 import { PublicLayout } from '@/components/PublicLayout';
-import { useLanguageStore } from '@/stores';
+import { useLanguageStore, useAuthStore } from '@/stores';
 import { t } from '@/lib/i18n';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { SubscriptionRepo } from '@/repos';
+import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 const PricingPage = () => {
-  const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
+  const workspace = useWorkspace();
   const { language } = useLanguageStore();
+  const { session } = useAuthStore();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [subscribing, setSubscribing] = useState<string | null>(null);
   const db = getDB();
-  const workspace = db ? Object.values(db.workspaces.byId).find(w => w.slug === workspaceSlug && w.status === 'active') : undefined;
-  if (!workspace || !db) return <div className="flex min-h-screen items-center justify-center bg-background"><p>{t('site.unavailable', language)}</p></div>;
+  if (!db) return null;
 
+  const redirectTo = searchParams.get('redirect') || '/account';
   const allPlans = Object.values(db.plans.byId).filter(p => p.status === 'active');
   const globalPlans = allPlans.filter(p => p.scope === 'global');
   const workspacePlans = allPlans.filter(p => p.scope === 'workspace' && p.workspaceId === workspace.id);
 
+  const handleSubscribe = async (planId: string) => {
+    if (!session) {
+      navigate(`/login?redirect=/pricing`);
+      return;
+    }
+    setSubscribing(planId);
+    const sub = await SubscriptionRepo.subscribe(planId);
+    setSubscribing(null);
+    if (sub) {
+      toast({ title: 'Subscribed!', description: 'Your subscription is now active.' });
+      navigate(redirectTo);
+    }
+  };
+
   return (
-    <PublicLayout workspace={workspace}>
+    <PublicLayout>
       <div className="container mx-auto px-6 py-12">
         <h1 className="text-center font-heading text-3xl font-bold text-foreground">{t('nav.pricing', language)}</h1>
 
@@ -33,12 +56,16 @@ const PricingPage = () => {
                     <span className="text-muted-foreground">{plan.interval === 'monthly' ? t('pricing.month', language) : t('pricing.year', language)}</span>
                   </div>
                   <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-                    <li>✓ Premium access to ALL workspaces</li>
+                    <li>✓ Premium access to ALL sites</li>
                     <li>✓ Unlimited content & videos</li>
                     <li>✓ All courses included</li>
                   </ul>
-                  <button className="mt-6 w-full rounded-lg bg-primary py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90">
-                    Get Started
+                  <button
+                    onClick={() => handleSubscribe(plan.id)}
+                    disabled={subscribing === plan.id}
+                    className="mt-6 w-full rounded-lg bg-primary py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                  >
+                    {subscribing === plan.id ? 'Subscribing...' : session ? 'Subscribe' : 'Sign In to Subscribe'}
                   </button>
                 </div>
               ))}
@@ -46,10 +73,10 @@ const PricingPage = () => {
           </div>
         )}
 
-        {/* Workspace Plans */}
+        {/* This Site Plans */}
         {workspacePlans.length > 0 && (
           <div className="mt-12">
-            <h2 className="mb-6 text-center font-heading text-xl font-semibold text-foreground">{t('pricing.workspace', language)}</h2>
+            <h2 className="mb-6 text-center font-heading text-xl font-semibold text-foreground">This Site</h2>
             <div className="mx-auto grid max-w-3xl gap-6 sm:grid-cols-2">
               {workspacePlans.map(plan => (
                 <div key={plan.id} className="rounded-lg border border-border bg-card p-6">
@@ -59,11 +86,15 @@ const PricingPage = () => {
                     <span className="text-muted-foreground">{plan.interval === 'monthly' ? t('pricing.month', language) : t('pricing.year', language)}</span>
                   </div>
                   <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-                    <li>✓ Premium access to {workspace.name}</li>
-                    <li>✓ All {workspace.name} content</li>
+                    <li>✓ Premium access to this site</li>
+                    <li>✓ All site content</li>
                   </ul>
-                  <button className="mt-6 w-full rounded-lg border border-primary bg-transparent py-2.5 text-sm font-medium text-primary hover:bg-primary/5">
-                    Subscribe
+                  <button
+                    onClick={() => handleSubscribe(plan.id)}
+                    disabled={subscribing === plan.id}
+                    className="mt-6 w-full rounded-lg border border-primary bg-transparent py-2.5 text-sm font-medium text-primary hover:bg-primary/5 disabled:opacity-50"
+                  >
+                    {subscribing === plan.id ? 'Subscribing...' : session ? 'Subscribe' : 'Sign In to Subscribe'}
                   </button>
                 </div>
               ))}

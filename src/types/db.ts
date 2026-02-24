@@ -2,6 +2,7 @@ import type {
   Workspace, User, Role, UserWorkspaceRole,
   ContentItem, VideoItem, Course, Module, Lesson, Category,
   HomeSection, Plan, UserSubscription, AnalyticsEvent, UserProgress, Session,
+  WorkspaceDomain,
 } from './entities';
 
 export interface SlugIndex {
@@ -72,6 +73,12 @@ export interface AppDatabase {
 
   // Progress
   progress: UserProgress[];
+
+  // Workspace Domains
+  workspaceDomains: {
+    byId: Record<string, WorkspaceDomain>;
+    byHostname: Record<string, string>; // hostname -> workspaceId (direct)
+  };
 
   // Session
   session: Session | null;

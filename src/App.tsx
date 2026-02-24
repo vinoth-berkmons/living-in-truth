@@ -3,8 +3,6 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
-import { LanguageProvider } from "@/contexts/LanguageContext";
 import WorkspaceHome from "./pages/WorkspaceHome";
 import ExplorePage from "./pages/ExplorePage";
 import CategoryPage from "./pages/CategoryPage";
@@ -39,42 +37,38 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <WorkspaceProvider>
-          <LanguageProvider>
-            <Routes>
-              {/* Public: flat routes (workspace resolved by hostname) */}
-              <Route path="/" element={<WorkspaceHome />} />
-              <Route path="/explore" element={<ExplorePage />} />
-              <Route path="/category/:catSlug" element={<CategoryPage />} />
-              <Route path="/watch/:videoSlug" element={<WatchPage />} />
-              <Route path="/read/:contentSlug" element={<ReadPage />} />
-              <Route path="/courses" element={<CoursesPage />} />
-              <Route path="/course/:courseSlug" element={<CourseLandingPage />} />
-              <Route path="/course/:courseSlug/lesson/:lessonId" element={<LessonPage />} />
-              <Route path="/pricing" element={<PricingPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/signup" element={<LoginPage initialMode="signup" />} />
-              <Route path="/account" element={<AccountPage />} />
-              <Route path="/language" element={<LanguagePage />} />
+          <Routes>
+            {/* Public: flat routes (workspace resolved by hostname) */}
+            <Route path="/" element={<WorkspaceHome />} />
+            <Route path="/explore" element={<ExplorePage />} />
+            <Route path="/category/:catSlug" element={<CategoryPage />} />
+            <Route path="/watch/:videoSlug" element={<WatchPage />} />
+            <Route path="/read/:contentSlug" element={<ReadPage />} />
+            <Route path="/courses" element={<CoursesPage />} />
+            <Route path="/course/:courseSlug" element={<CourseLandingPage />} />
+            <Route path="/course/:courseSlug/lesson/:lessonId" element={<LessonPage />} />
+            <Route path="/pricing" element={<PricingPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<LoginPage initialMode="signup" />} />
+            <Route path="/account" element={<AccountPage />} />
+            <Route path="/language" element={<LanguagePage />} />
 
-              {/* Admin */}
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/admin/workspaces" element={<AdminWorkspaces />} />
-              <Route path="/admin/users" element={<AdminUsers />} />
-              <Route path="/admin/categories" element={<AdminCategories />} />
-              <Route path="/admin/content" element={<AdminContent />} />
-              <Route path="/admin/videos" element={<AdminContent />} />
-              <Route path="/admin/courses" element={<AdminCourses />} />
-              <Route path="/admin/home-layout" element={<AdminHomeLayout />} />
-              <Route path="/admin/plans" element={<AdminPlans />} />
-              <Route path="/admin/subscriptions" element={<AdminSubscriptions />} />
-              <Route path="/admin/analytics" element={<AdminAnalytics />} />
-              <Route path="/admin/settings" element={<AdminSettings />} />
+            {/* Admin */}
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/workspaces" element={<AdminWorkspaces />} />
+            <Route path="/admin/users" element={<AdminUsers />} />
+            <Route path="/admin/categories" element={<AdminCategories />} />
+            <Route path="/admin/content" element={<AdminContent />} />
+            <Route path="/admin/videos" element={<AdminContent />} />
+            <Route path="/admin/courses" element={<AdminCourses />} />
+            <Route path="/admin/home-layout" element={<AdminHomeLayout />} />
+            <Route path="/admin/plans" element={<AdminPlans />} />
+            <Route path="/admin/subscriptions" element={<AdminSubscriptions />} />
+            <Route path="/admin/analytics" element={<AdminAnalytics />} />
+            <Route path="/admin/settings" element={<AdminSettings />} />
 
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </LanguageProvider>
-        </WorkspaceProvider>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

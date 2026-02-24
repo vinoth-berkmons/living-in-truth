@@ -215,10 +215,20 @@ const MediaCard = ({ item, language, isShort, index }: MediaCardProps) => {
           </div>
         )}
 
-        {/* Format badge for shorts */}
-        {isShort && !showPlayer && (
-          <div className="absolute bottom-2 left-2 rounded-lg bg-primary/90 px-2 py-1 text-xs font-semibold text-primary-foreground shadow-lg">
-            Short
+        {/* Type badge */}
+        {!showPlayer && (
+          <div className={`absolute bottom-2 left-2 rounded-lg px-2 py-1 text-xs font-semibold shadow-lg backdrop-blur-sm flex items-center gap-1 ${
+            isShort ? 'bg-primary/90 text-primary-foreground'
+            : item.type === 'video' ? 'bg-blue-600/90 text-white'
+            : item.type === 'course' ? 'bg-emerald-600/90 text-white'
+            : item.type === 'article' ? 'bg-amber-600/90 text-white'
+            : item.type === 'blog' ? 'bg-teal-600/90 text-white'
+            : 'bg-primary/90 text-primary-foreground'
+          }`}>
+            {isShort ? <Play className="h-3 w-3" /> 
+            : item.type === 'video' ? <Play className="h-3 w-3" />
+            : <BookOpen className="h-3 w-3" />}
+            {isShort ? 'Short' : item.type === 'video' ? 'Video' : item.type === 'course' ? 'Course' : item.type === 'article' ? 'Article' : item.type === 'blog' ? 'Blog' : 'Content'}
           </div>
         )}
       </div>

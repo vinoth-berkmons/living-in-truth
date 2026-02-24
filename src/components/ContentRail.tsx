@@ -225,9 +225,7 @@ const MediaCard = ({ item, language, isShort, index }: MediaCardProps) => {
             : item.type === 'blog' ? 'bg-teal-600/90 text-white'
             : 'bg-primary/90 text-primary-foreground'
           }`}>
-            {isShort ? <Play className="h-3 w-3" /> 
-            : item.type === 'video' ? <Play className="h-3 w-3" />
-            : <BookOpen className="h-3 w-3" />}
+            {(isShort || item.type === 'video' || item.type === 'course') ? <Play className="h-3 w-3" /> : <BookOpen className="h-3 w-3" />}
             {isShort ? 'Short' : item.type === 'video' ? 'Video' : item.type === 'course' ? 'Course' : item.type === 'article' ? 'Article' : item.type === 'blog' ? 'Blog' : 'Content'}
           </div>
         )}

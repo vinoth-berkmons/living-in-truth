@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import WorkspaceHome from "./pages/WorkspaceHome";
 import ExplorePage from "./pages/ExplorePage";
+import VideosPage from "./pages/VideosPage";
+import ArticlesPage from "./pages/ArticlesPage";
 import CategoryPage from "./pages/CategoryPage";
 import WatchPage from "./pages/WatchPage";
 import ReadPage from "./pages/ReadPage";
@@ -41,6 +43,8 @@ const App = () => (
             {/* Public: flat routes (workspace resolved by hostname) */}
             <Route path="/" element={<WorkspaceHome />} />
             <Route path="/explore" element={<ExplorePage />} />
+            <Route path="/videos" element={<VideosPage />} />
+            <Route path="/articles" element={<ArticlesPage />} />
             <Route path="/category/:catSlug" element={<CategoryPage />} />
             <Route path="/watch/:videoSlug" element={<WatchPage />} />
             <Route path="/read/:contentSlug" element={<ReadPage />} />

@@ -14,7 +14,7 @@ import LessonPage from "./pages/LessonPage";
 import PricingPage from "./pages/PricingPage";
 import LoginPage from "./pages/LoginPage";
 import AccountPage from "./pages/AccountPage";
-import LanguagePage from "./pages/LanguagePage";
+// LanguagePage removed — language selection is now a popup dialog
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminWorkspaces from "./pages/admin/AdminWorkspaces";
 import AdminUsers from "./pages/admin/AdminUsers";
@@ -51,7 +51,7 @@ const App = () => (
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<LoginPage initialMode="signup" />} />
             <Route path="/account" element={<AccountPage />} />
-            <Route path="/language" element={<LanguagePage />} />
+            {/* Language is now a popup dialog in PublicLayout */}
 
             {/* Admin */}
             <Route path="/admin" element={<AdminDashboard />} />

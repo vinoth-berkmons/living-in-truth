@@ -12,7 +12,7 @@ interface ThemeState {
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set) => ({
-      isDark: false,
+      isDark: true,
       toggle: () => set((s) => {
         const next = !s.isDark;
         document.documentElement.classList.toggle('dark', next);

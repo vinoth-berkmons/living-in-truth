@@ -34,12 +34,12 @@ const WatchPage = () => {
 
   const relatedCards: MediaCardData[] = related.map(v => {
     const vTr = getTranslation(v.translations, language);
-    return { id: v.id, title: vTr?.title ?? 'Untitled', coverImageUrl: v.coverImageUrl, href: `/watch/${v.slug}`, type: 'video', format: v.format, access: v.access, durationSeconds: v.durationSeconds };
+    return { id: v.id, title: vTr?.title ?? 'Untitled', coverImageUrl: v.coverImageUrl, href: `/watch/${v.slug}`, type: 'video', format: v.format, access: v.access, durationSeconds: v.durationSeconds, youtubeId: v.source.youtubeId };
   });
 
   const shortCards: MediaCardData[] = shorts.map(v => {
     const vTr = getTranslation(v.translations, language);
-    return { id: v.id, title: vTr?.title ?? 'Untitled', coverImageUrl: v.coverImageUrl, href: `/watch/${v.slug}`, type: 'video', format: v.format, access: v.access, durationSeconds: v.durationSeconds };
+    return { id: v.id, title: vTr?.title ?? 'Untitled', coverImageUrl: v.coverImageUrl, href: `/watch/${v.slug}`, type: 'video', format: v.format, access: v.access, durationSeconds: v.durationSeconds, youtubeId: v.source.youtubeId };
   });
 
   const videoCats = video.categoryIds.map(id => db.categories.byId[id]).filter(Boolean);

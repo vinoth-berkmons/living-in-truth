@@ -1,12 +1,19 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useThemeStore, useAuthStore } from '@/stores';
 import { getDB } from '@/lib/db';
 import { t } from '@/lib/i18n';
 import { hasPermission } from '@/lib/rbac';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { LANGUAGE_META, type Language } from '@/types/entities';
 import { Sun, Moon, Search, Globe, User, Menu, X, Shield } from 'lucide-react';
 import { useState } from 'react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface PublicLayoutProps {
   children: React.ReactNode;
@@ -16,13 +23,14 @@ export const PublicLayout = ({ children }: PublicLayoutProps) => {
   const workspace = useWorkspace();
   const { isDark, toggle } = useThemeStore();
   const { session } = useAuthStore();
-  const { language, enabledLanguages, hideLanguageSwitcher } = useLanguage();
+  const { language, setLanguage, enabledLanguages, hideLanguageSwitcher } = useLanguage();
   const location = useLocation();
-  const navigate = useNavigate();
   const db = getDB();
   const user = session ? db?.users.byId[session.userId] : null;
   const showAdmin = session ? hasPermission(session.userId, workspace.id, 'view_admin') : false;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [langDialogOpen, setLangDialogOpen] = useState(false);
+  const [selectedLang, setSelectedLang] = useState<Language>(language);
 
   const navLinks = [
     { label: t('nav.home', language), to: '/' },
@@ -38,6 +46,16 @@ export const PublicLayout = ({ children }: PublicLayoutProps) => {
   };
 
   const showLanguageButton = !hideLanguageSwitcher && enabledLanguages.length > 1;
+
+  const handleLangSave = () => {
+    setLanguage(selectedLang);
+    setLangDialogOpen(false);
+  };
+
+  const handleLangOpen = () => {
+    setSelectedLang(language);
+    setLangDialogOpen(true);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -88,7 +106,7 @@ export const PublicLayout = ({ children }: PublicLayoutProps) => {
             {/* Language */}
             {showLanguageButton && (
               <button
-                onClick={() => navigate(`/language?returnTo=${encodeURIComponent(location.pathname + location.search)}`)}
+                onClick={handleLangOpen}
                 className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
               >
                 <Globe className="h-3.5 w-3.5" />
@@ -166,6 +184,68 @@ export const PublicLayout = ({ children }: PublicLayoutProps) => {
       </header>
 
       <main>{children}</main>
+
+      {/* Language Dialog */}
+      <Dialog open={langDialogOpen} onOpenChange={setLangDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Globe className="h-5 w-5 text-primary" />
+              {t('lang.choose', language)}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            {enabledLanguages.map(lang => {
+              const meta = LANGUAGE_META[lang];
+              return (
+                <label
+                  key={lang}
+                  className={`flex cursor-pointer items-center gap-4 rounded-xl border p-4 transition-all ${
+                    selectedLang === lang
+                      ? 'border-primary bg-primary/5 shadow-sm'
+                      : 'border-border bg-card hover:border-primary/30'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="language"
+                    value={lang}
+                    checked={selectedLang === lang}
+                    onChange={() => setSelectedLang(lang)}
+                    className="sr-only"
+                  />
+                  <div className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${
+                    selectedLang === lang ? 'border-primary' : 'border-muted-foreground/30'
+                  }`}>
+                    {selectedLang === lang && <div className="h-2.5 w-2.5 rounded-full bg-primary" />}
+                  </div>
+                  <div className="flex-1">
+                    <span className="font-medium text-foreground">{meta.english}</span>
+                    {meta.english !== meta.native && (
+                      <span className="ml-2 text-sm text-muted-foreground">{meta.native}</span>
+                    )}
+                  </div>
+                  <span className="text-xs font-medium text-muted-foreground uppercase">{lang}</span>
+                </label>
+              );
+            })}
+          </div>
+          <div className="flex items-center gap-3 pt-2">
+            <button
+              onClick={handleLangSave}
+              className="flex-1 rounded-lg bg-primary py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              {t('lang.save', language)}
+            </button>
+            <button
+              onClick={() => setLangDialogOpen(false)}
+              className="flex-1 rounded-lg border border-border bg-card py-3 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+            >
+              {t('lang.cancel', language)}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Footer */}
       <footer className="border-t border-border/50 bg-surface/50 py-10">

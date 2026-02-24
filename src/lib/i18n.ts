@@ -1,6 +1,6 @@
 import type { Language } from '@/types/entities';
 
-const strings: Record<string, Record<Language, string>> = {
+const strings: Record<string, Partial<Record<Language, string>>> = {
   'nav.home': { en: 'Home', ar: 'الرئيسية', fr: 'Accueil', es: 'Inicio', de: 'Startseite', tr: 'Ana Sayfa' },
   'nav.videos': { en: 'Videos', ar: 'فيديوهات', fr: 'Vidéos', es: 'Videos', de: 'Videos', tr: 'Videolar' },
   'nav.articles': { en: 'Articles', ar: 'مقالات', fr: 'Articles', es: 'Artículos', de: 'Artikel', tr: 'Makaleler' },
@@ -37,6 +37,9 @@ const strings: Record<string, Record<Language, string>> = {
   'explore.all': { en: 'All', ar: 'الكل', fr: 'Tout', es: 'Todo', de: 'Alle', tr: 'Tümü' },
   'explore.filter.type': { en: 'Type', ar: 'النوع', fr: 'Type', es: 'Tipo', de: 'Typ', tr: 'Tür' },
   'explore.filter.access': { en: 'Access', ar: 'الوصول', fr: 'Accès', es: 'Acceso', de: 'Zugang', tr: 'Erişim' },
+  'lang.choose': { en: 'Choose Language', ar: 'اختر اللغة', fr: 'Choisir la langue', es: 'Elegir idioma', de: 'Sprache wählen', tr: 'Dil seçin', ta: 'மொழியைத் தேர்வுசெய்', hi: 'भाषा चुनें' },
+  'lang.save': { en: 'Save', ar: 'حفظ', fr: 'Enregistrer', es: 'Guardar', de: 'Speichern', tr: 'Kaydet', ta: 'சேமி', hi: 'सहेजें' },
+  'lang.cancel': { en: 'Cancel', ar: 'إلغاء', fr: 'Annuler', es: 'Cancelar', de: 'Abbrechen', tr: 'İptal', ta: 'ரத்துசெய்', hi: 'रद्द करें' },
 };
 
 export function t(key: string, lang: Language = 'en'): string {

@@ -1,7 +1,8 @@
 import { useParams, Link } from 'react-router-dom';
 import { getDB } from '@/lib/db';
 import { PublicLayout } from '@/components/PublicLayout';
-import { useLanguageStore, useAuthStore } from '@/stores';
+import { useAuthStore } from '@/stores';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { getTranslation, t } from '@/lib/i18n';
 import { VideoPlayer } from '@/components/VideoPlayer';
 import { canAccessItem } from '@/lib/rbac';
@@ -11,7 +12,7 @@ import { LogIn, UserPlus } from 'lucide-react';
 const LessonPage = () => {
   const { courseSlug, lessonId } = useParams<{ courseSlug: string; lessonId: string }>();
   const workspace = useWorkspace();
-  const { language } = useLanguageStore();
+  const { language } = useLanguage();
   const { session } = useAuthStore();
   const db = getDB();
   if (!db) return null;

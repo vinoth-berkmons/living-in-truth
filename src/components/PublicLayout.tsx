@@ -1,10 +1,10 @@
-import { Link, useLocation } from 'react-router-dom';
-import { useThemeStore, useAuthStore, useLanguageStore } from '@/stores';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useThemeStore, useAuthStore } from '@/stores';
 import { getDB } from '@/lib/db';
 import { t } from '@/lib/i18n';
 import { hasPermission } from '@/lib/rbac';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Sun, Moon, Search, Globe, User, Menu, X, Shield } from 'lucide-react';
-import type { Workspace, Language } from '@/types/entities';
 import { useState } from 'react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 
@@ -16,8 +16,9 @@ export const PublicLayout = ({ children }: PublicLayoutProps) => {
   const workspace = useWorkspace();
   const { isDark, toggle } = useThemeStore();
   const { session } = useAuthStore();
-  const { language, setLanguage } = useLanguageStore();
+  const { language, enabledLanguages, hideLanguageSwitcher } = useLanguage();
   const location = useLocation();
+  const navigate = useNavigate();
   const db = getDB();
   const user = session ? db?.users.byId[session.userId] : null;
   const showAdmin = session ? hasPermission(session.userId, workspace.id, 'view_admin') : false;
@@ -35,6 +36,8 @@ export const PublicLayout = ({ children }: PublicLayoutProps) => {
     if (to.includes('?')) return location.pathname + location.search === to;
     return location.pathname === to;
   };
+
+  const showLanguageButton = !hideLanguageSwitcher && enabledLanguages.length > 1;
 
   return (
     <div className="min-h-screen bg-background">
@@ -83,19 +86,14 @@ export const PublicLayout = ({ children }: PublicLayoutProps) => {
             </Link>
 
             {/* Language */}
-            {!workspace.hideLanguageSwitcher && workspace.enabledLanguages.length > 1 && (
-              <div className="relative">
-                <select
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value as Language)}
-                  className="cursor-pointer appearance-none rounded-lg bg-transparent px-2 py-1.5 pr-6 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  {workspace.enabledLanguages.map(lang => (
-                    <option key={lang} value={lang}>{lang.toUpperCase()}</option>
-                  ))}
-                </select>
-                <Globe className="pointer-events-none absolute right-1 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
-              </div>
+            {showLanguageButton && (
+              <button
+                onClick={() => navigate(`/language?returnTo=${encodeURIComponent(location.pathname + location.search)}`)}
+                className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <Globe className="h-3.5 w-3.5" />
+                <span>{language.toUpperCase()}</span>
+              </button>
             )}
 
             {/* Theme toggle */}

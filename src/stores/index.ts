@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Session, Language } from '@/types/entities';
+import type { Session } from '@/types/entities';
 
 // ========== Theme Store ==========
 interface ThemeState {
@@ -40,22 +40,6 @@ export const useAuthStore = create<AuthState>()(
       setSession: (session) => set({ session }),
     }),
     { name: 'lit-auth' }
-  )
-);
-
-// ========== Language Store ==========
-interface LanguageState {
-  language: Language;
-  setLanguage: (lang: Language) => void;
-}
-
-export const useLanguageStore = create<LanguageState>()(
-  persist(
-    (set) => ({
-      language: 'en',
-      setLanguage: (language) => set({ language }),
-    }),
-    { name: 'lit-language' }
   )
 );
 

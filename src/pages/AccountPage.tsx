@@ -1,7 +1,8 @@
 import { useNavigate, Link } from 'react-router-dom';
 import { getDB } from '@/lib/db';
 import { PublicLayout } from '@/components/PublicLayout';
-import { useLanguageStore, useAuthStore } from '@/stores';
+import { useAuthStore } from '@/stores';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { t, getTranslation } from '@/lib/i18n';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { AuthRepo } from '@/repos';
@@ -10,7 +11,7 @@ import { canAccessItem } from '@/lib/rbac';
 const AccountPage = () => {
   const workspace = useWorkspace();
   const navigate = useNavigate();
-  const { language } = useLanguageStore();
+  const { language } = useLanguage();
   const { session, setSession } = useAuthStore();
   const db = getDB();
 

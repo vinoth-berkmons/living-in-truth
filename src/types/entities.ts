@@ -1,6 +1,17 @@
 // ========== Core Types ==========
 
-export type Language = 'en' | 'ar' | 'fr' | 'es' | 'de' | 'tr';
+export type Language = 'en' | 'ar' | 'fr' | 'es' | 'de' | 'tr' | 'ta' | 'hi';
+
+export const LANGUAGE_META: Record<Language, { english: string; native: string }> = {
+  en: { english: 'English', native: 'English' },
+  ar: { english: 'Arabic', native: 'العربية' },
+  fr: { english: 'French', native: 'Français' },
+  es: { english: 'Spanish', native: 'Español' },
+  de: { english: 'German', native: 'Deutsch' },
+  tr: { english: 'Turkish', native: 'Türkçe' },
+  ta: { english: 'Tamil', native: 'தமிழ்' },
+  hi: { english: 'Hindi', native: 'हिन्दी' },
+};
 
 export type EntityStatus = 'draft' | 'published' | 'archived';
 export type AccessLevel = 'free' | 'premium';

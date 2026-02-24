@@ -8,6 +8,7 @@ import { getTranslation } from '@/lib/i18n';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import type { HomeSection, Language } from '@/types/entities';
 import type { AppDatabase } from '@/types/db';
+import { useEffect, useRef, useState } from 'react';
 
 const WorkspaceHome = () => {
   const workspace = useWorkspace();
@@ -17,7 +18,6 @@ const WorkspaceHome = () => {
 
   const sectionIds = db.homeSections.orderByWorkspaceId[workspace.id] || [];
   const sections = sectionIds.map(id => db.homeSections.byId[id]).filter(Boolean) as HomeSection[];
-
   const categories = Object.values(db.categories.byId).filter(c => c.workspaceId === workspace.id);
 
   return (
@@ -55,29 +55,7 @@ const WorkspaceHome = () => {
 
       {/* Categories / Browse All section */}
       {categories.length > 0 && (
-        <section className="px-6 py-8 md:px-12">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-heading text-xl font-bold text-foreground md:text-2xl">Browse Categories</h2>
-            <Link to="/explore" className="text-sm font-medium text-primary hover:underline">
-              View All →
-            </Link>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {categories.map(cat => {
-              const tr = getTranslation(cat.translations, language);
-              return (
-                <Link
-                  key={cat.id}
-                  to={`/category/${cat.slug}`}
-                  className="group rounded-xl border border-border bg-card p-5 transition-all hover:border-primary/50 hover:shadow-md"
-                >
-                  <h3 className="font-heading text-base font-semibold text-foreground">{tr?.title ?? cat.slug}</h3>
-                  {tr?.description && <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{tr.description}</p>}
-                </Link>
-              );
-            })}
-          </div>
-        </section>
+        <CategoriesSection categories={categories} language={language} />
       )}
 
       {sections.length === 0 && (
@@ -88,6 +66,55 @@ const WorkspaceHome = () => {
     </PublicLayout>
   );
 };
+
+function CategoriesSection({ categories, language }: { categories: any[]; language: Language }) {
+  const sectionRef = useRef<HTMLElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setIsVisible(true); observer.unobserve(el); } },
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <section
+      ref={sectionRef}
+      className={`px-6 py-10 md:px-12 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+    >
+      <div className="mb-6 flex items-center justify-between">
+        <h2 className="font-heading text-xl font-bold text-foreground md:text-2xl tracking-tight">Browse Categories</h2>
+        <Link to="/explore" className="text-sm font-medium text-primary hover:text-primary/80 transition-colors duration-300">
+          View All →
+        </Link>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        {categories.map((cat: any, i: number) => {
+          const tr = getTranslation(cat.translations, language) as { title?: string; description?: string } | undefined;
+          return (
+            <Link
+              key={cat.id}
+              to={`/category/${cat.slug}`}
+              className="card-lift card-glow group rounded-xl border border-border/50 bg-card p-6 transition-all duration-300"
+              style={{ animationDelay: `${i * 0.1}s` }}
+            >
+              <h3 className="font-heading text-base font-semibold text-foreground group-hover:text-primary transition-colors duration-300">{tr?.title ?? cat.slug}</h3>
+              {tr?.description && <p className="mt-2 text-xs text-muted-foreground line-clamp-2">{tr.description}</p>}
+              <span className="mt-3 inline-block text-xs font-medium text-primary opacity-0 transform translate-y-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-y-0">
+                Explore →
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
 
 function getRailItems(section: HomeSection, db: AppDatabase, workspace: { id: string; slug: string }, lang: Language): MediaCardData[] {
   const results: MediaCardData[] = [];

@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Play, Clock, Crown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Clock, Crown, BookOpen } from 'lucide-react';
 import type { Language } from '@/types/entities';
 import { t } from '@/lib/i18n';
 
@@ -30,6 +30,8 @@ export const ContentRail = ({ title, items, language, viewAllHref, isShorts }: C
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
+  const sectionRef = useRef<HTMLElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
 
   const checkScroll = () => {
     const el = scrollRef.current;
@@ -39,6 +41,18 @@ export const ContentRail = ({ title, items, language, viewAllHref, isShorts }: C
   };
 
   useEffect(() => { checkScroll(); }, [items]);
+
+  // Intersection observer for scroll reveal
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setIsVisible(true); observer.unobserve(el); } },
+      { threshold: 0.1, rootMargin: '50px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const scroll = (dir: 'left' | 'right') => {
     const el = scrollRef.current;
@@ -50,13 +64,16 @@ export const ContentRail = ({ title, items, language, viewAllHref, isShorts }: C
   if (items.length === 0) return null;
 
   return (
-    <section className="relative py-4">
+    <section
+      ref={sectionRef}
+      className={`relative py-6 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+    >
       {/* Header */}
-      <div className="mb-3 flex items-center justify-between px-6 md:px-12">
-        <h2 className="font-heading text-xl font-bold text-foreground md:text-2xl">{title}</h2>
+      <div className="mb-4 flex items-center justify-between px-6 md:px-12">
+        <h2 className="font-heading text-xl font-bold text-foreground md:text-2xl tracking-tight">{title}</h2>
         <div className="flex items-center gap-2">
           {viewAllHref && (
-            <Link to={viewAllHref} className="text-sm font-medium text-primary hover:underline">
+            <Link to={viewAllHref} className="text-sm font-medium text-primary hover:text-primary/80 transition-colors duration-300">
               {t('common.viewAll', language)} →
             </Link>
           )}
@@ -64,14 +81,14 @@ export const ContentRail = ({ title, items, language, viewAllHref, isShorts }: C
             <button
               onClick={() => scroll('left')}
               disabled={!canScrollLeft}
-              className="rounded-full bg-surface p-1.5 text-muted-foreground transition-all hover:bg-secondary disabled:opacity-30"
+              className="rounded-full border border-border/50 bg-surface p-2 text-muted-foreground transition-all duration-300 hover:bg-primary/10 hover:text-primary hover:border-primary/30 disabled:opacity-20 disabled:hover:bg-surface disabled:hover:text-muted-foreground"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
             <button
               onClick={() => scroll('right')}
               disabled={!canScrollRight}
-              className="rounded-full bg-surface p-1.5 text-muted-foreground transition-all hover:bg-secondary disabled:opacity-30"
+              className="rounded-full border border-border/50 bg-surface p-2 text-muted-foreground transition-all duration-300 hover:bg-primary/10 hover:text-primary hover:border-primary/30 disabled:opacity-20 disabled:hover:bg-surface disabled:hover:text-muted-foreground"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -83,10 +100,10 @@ export const ContentRail = ({ title, items, language, viewAllHref, isShorts }: C
       <div
         ref={scrollRef}
         onScroll={checkScroll}
-        className="flex gap-3 overflow-x-auto px-6 pb-2 scrollbar-hide snap-x-mandatory md:gap-4 md:px-12"
+        className="flex gap-4 overflow-x-auto px-6 pb-2 scrollbar-hide snap-x-mandatory md:gap-5 md:px-12"
       >
-        {items.map(item => (
-          <MediaCard key={item.id} item={item} language={language} isShort={isShorts} />
+        {items.map((item, i) => (
+          <MediaCard key={item.id} item={item} language={language} isShort={isShorts} index={i} />
         ))}
       </div>
     </section>
@@ -97,10 +114,13 @@ interface MediaCardProps {
   item: MediaCardData;
   language: Language;
   isShort?: boolean;
+  index: number;
 }
 
-const MediaCard = ({ item, language, isShort }: MediaCardProps) => {
-  const cardWidth = isShort ? 'min-w-[160px] max-w-[160px]' : 'min-w-[260px] max-w-[260px] md:min-w-[300px] md:max-w-[300px]';
+const MediaCard = ({ item, language, isShort, index }: MediaCardProps) => {
+  const cardWidth = isShort
+    ? 'min-w-[150px] max-w-[150px] sm:min-w-[160px] sm:max-w-[160px]'
+    : 'min-w-[240px] max-w-[240px] sm:min-w-[260px] sm:max-w-[260px] md:min-w-[300px] md:max-w-[300px]';
   const aspectRatio = isShort ? 'aspect-[9/16]' : 'aspect-video';
 
   const [showPlayer, setShowPlayer] = useState(false);
@@ -118,26 +138,27 @@ const MediaCard = ({ item, language, isShort }: MediaCardProps) => {
   }, []);
 
   useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, []);
+
+  const typeIcon = item.type === 'video' ? Play : item.type === 'course' ? null : BookOpen;
 
   return (
     <Link
       to={item.href}
-      className={`group snap-start flex-shrink-0 ${cardWidth} overflow-hidden rounded-lg transition-all hover:scale-[1.02]`}
+      className={`group snap-start flex-shrink-0 ${cardWidth} overflow-hidden rounded-xl transition-all duration-300 hover:scale-[1.03]`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      style={{ animationDelay: `${index * 0.05}s` }}
     >
-      {/* Thumbnail */}
-      <div className={`relative ${aspectRatio} overflow-hidden rounded-lg bg-secondary`}>
+      {/* Thumbnail with glow effect */}
+      <div className={`card-glow relative ${aspectRatio} overflow-hidden rounded-xl bg-secondary`}>
         {item.coverImageUrl && (
           <img
             src={item.coverImageUrl}
             alt={item.title}
             loading="lazy"
-            className={`h-full w-full object-cover transition-transform duration-300 group-hover:scale-105 ${showPlayer ? 'opacity-0' : 'opacity-100'}`}
+            className={`h-full w-full object-cover transition-all duration-500 group-hover:scale-110 group-hover:brightness-110 ${showPlayer ? 'opacity-0' : 'opacity-100'}`}
           />
         )}
 
@@ -145,7 +166,7 @@ const MediaCard = ({ item, language, isShort }: MediaCardProps) => {
         {showPlayer && item.youtubeId && (
           <iframe
             src={`https://www.youtube.com/embed/${item.youtubeId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${item.youtubeId}&modestbranding=1&showinfo=0&rel=0`}
-            className="absolute inset-0 h-full w-full"
+            className="absolute inset-0 h-full w-full z-10"
             allow="autoplay; encrypted-media"
             frameBorder="0"
             loading="lazy"
@@ -154,8 +175,8 @@ const MediaCard = ({ item, language, isShort }: MediaCardProps) => {
 
         {/* Overlay on hover (only when not playing) */}
         {!showPlayer && (
-          <div className="absolute inset-0 flex items-center justify-center bg-background/0 opacity-0 transition-all group-hover:bg-background/30 group-hover:opacity-100">
-            <div className="rounded-full bg-primary p-3 shadow-lg">
+          <div className="absolute inset-0 flex items-center justify-center bg-background/0 opacity-0 transition-all duration-400 group-hover:bg-background/40 group-hover:opacity-100">
+            <div className="rounded-full bg-primary p-3.5 shadow-xl shadow-primary/30 transition-transform duration-300 scale-75 group-hover:scale-100">
               <Play className="h-5 w-5 text-primary-foreground" fill="currentColor" />
             </div>
           </div>
@@ -163,7 +184,7 @@ const MediaCard = ({ item, language, isShort }: MediaCardProps) => {
 
         {/* Duration badge */}
         {item.durationSeconds && !isShort && !showPlayer && (
-          <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded bg-background/80 px-1.5 py-0.5 text-xs font-medium text-foreground backdrop-blur-sm">
+          <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-lg bg-background/80 px-2 py-1 text-xs font-medium text-foreground backdrop-blur-md">
             <Clock className="h-3 w-3" />
             {formatDuration(item.durationSeconds)}
           </div>
@@ -171,7 +192,7 @@ const MediaCard = ({ item, language, isShort }: MediaCardProps) => {
 
         {/* Premium badge */}
         {item.access === 'premium' && !showPlayer && (
-          <div className="absolute left-2 top-2 flex items-center gap-1 rounded bg-accent/90 px-1.5 py-0.5 text-xs font-semibold text-accent-foreground">
+          <div className="absolute left-2 top-2 flex items-center gap-1 rounded-lg bg-accent/90 px-2 py-1 text-xs font-semibold text-accent-foreground backdrop-blur-sm shadow-lg">
             <Crown className="h-3 w-3" />
             {t('common.premium', language)}
           </div>
@@ -179,17 +200,20 @@ const MediaCard = ({ item, language, isShort }: MediaCardProps) => {
 
         {/* Format badge for shorts */}
         {isShort && !showPlayer && (
-          <div className="absolute bottom-2 left-2 rounded bg-primary/90 px-1.5 py-0.5 text-xs font-semibold text-primary-foreground">
+          <div className="absolute bottom-2 left-2 rounded-lg bg-primary/90 px-2 py-1 text-xs font-semibold text-primary-foreground shadow-lg">
             Short
           </div>
         )}
       </div>
 
       {/* Info */}
-      <div className="mt-2 px-0.5">
-        <h3 className="text-sm font-semibold text-foreground line-clamp-2 leading-snug">{item.title}</h3>
+      <div className="mt-3 px-0.5">
+        <h3 className="text-sm font-semibold text-foreground line-clamp-2 leading-snug group-hover:text-primary transition-colors duration-300">{item.title}</h3>
+        {!isShort && item.excerpt && (
+          <p className="mt-1 text-xs text-muted-foreground line-clamp-1">{item.excerpt}</p>
+        )}
         {!isShort && item.type === 'course' && item.moduleCount !== undefined && (
-          <p className="mt-0.5 text-xs text-muted-foreground">{item.moduleCount} module{item.moduleCount !== 1 ? 's' : ''}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{item.moduleCount} module{item.moduleCount !== 1 ? 's' : ''}</p>
         )}
       </div>
     </Link>

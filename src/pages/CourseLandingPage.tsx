@@ -5,8 +5,16 @@ import { useAuthStore } from '@/stores';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getTranslation, t } from '@/lib/i18n';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { GraduationCap, Crown, ChevronDown, ChevronUp, Play, BookOpen, ArrowLeft, LogIn, UserPlus } from 'lucide-react';
+import { GraduationCap, Crown, ChevronDown, ChevronUp, Play, BookOpen, ArrowLeft, LogIn, UserPlus, Clock, CheckCircle2, ArrowRight } from 'lucide-react';
 import { useState } from 'react';
+import { CourseProgressBar } from '@/components/CourseProgressBar';
+
+function formatTotalDuration(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
 
 const CourseLandingPage = () => {
   const { courseSlug } = useParams<{ courseSlug: string }>();
@@ -22,7 +30,20 @@ const CourseLandingPage = () => {
 
   const tr = getTranslation(course.translations, language);
   const modules = course.moduleIds.map(id => db.modules.byId[id]).filter(Boolean);
-  const enrolled = session ? db.progress.some(p => p.userId === session.userId && p.courseId === course.id) : false;
+  const allLessons = modules.flatMap(m => m!.lessonIds.map(id => db.lessons.byId[id]).filter(Boolean));
+  const progress = session ? db.progress.find(p => p.userId === session.userId && p.courseId === course.id) : undefined;
+  const enrolled = !!progress;
+  const completedIds = new Set(progress?.completedLessonIds ?? []);
+
+  // Resume point
+  const resumeLesson = allLessons.find(l => l && !completedIds.has(l.id)) || allLessons[allLessons.length - 1];
+
+  // Duration
+  const totalDuration = allLessons.reduce((acc, l) => {
+    if (!l?.videoId) return acc;
+    const v = db.videos.byId[l.videoId];
+    return acc + (v?.durationSeconds ?? 0);
+  }, 0);
 
   const firstModId = course.moduleIds[0];
   const firstMod = firstModId ? db.modules.byId[firstModId] : undefined;
@@ -31,7 +52,7 @@ const CourseLandingPage = () => {
   const coverVideo = firstLesson?.videoId ? db.videos.byId[firstLesson.videoId] : undefined;
   const coverUrl = coverVideo?.coverImageUrl ?? 'https://images.unsplash.com/photo-1504052434569-70ad5836ab65?w=800&q=80';
 
-  const totalLessons = modules.reduce((acc, m) => acc + (m?.lessonIds.length ?? 0), 0);
+  const totalLessons = allLessons.length;
   const currentPath = `/course/${courseSlug}`;
 
   return (
@@ -58,14 +79,23 @@ const CourseLandingPage = () => {
             </div>
             <h1 className="font-heading text-3xl font-bold text-foreground md:text-4xl">{tr?.title ?? 'Untitled'}</h1>
             {tr?.description && <p className="mt-2 max-w-2xl text-base text-muted-foreground">{tr.description}</p>}
-            <div className="mt-3 flex items-center gap-4 text-sm text-muted-foreground">
-              <span>{modules.length} module{modules.length !== 1 ? 's' : ''}</span>
+
+            {/* Stats row */}
+            <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1"><BookOpen className="h-3.5 w-3.5" />{modules.length} module{modules.length !== 1 ? 's' : ''}</span>
               <span>·</span>
-              <span>{totalLessons} lesson{totalLessons !== 1 ? 's' : ''}</span>
+              <span className="flex items-center gap-1"><Play className="h-3.5 w-3.5" />{totalLessons} lesson{totalLessons !== 1 ? 's' : ''}</span>
+              {totalDuration > 0 && (
+                <>
+                  <span>·</span>
+                  <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" />{formatTotalDuration(totalDuration)}</span>
+                </>
+              )}
             </div>
+
             <div className="mt-5">
               {enrolled ? (
-                <Link to={`/course/${course.slug}/lesson/${modules[0]?.lessonIds[0] || ''}`} className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground hover:bg-primary/90">
+                <Link to={`/course/${course.slug}/lesson/${resumeLesson?.id || ''}`} className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground hover:bg-primary/90">
                   <Play className="h-4 w-4" />{t('course.continue', language)}
                 </Link>
               ) : !session ? (
@@ -87,13 +117,35 @@ const CourseLandingPage = () => {
         </div>
       </div>
 
+      {/* Progress overview for enrolled users */}
+      {enrolled && (
+        <div className="mx-auto max-w-3xl px-6 md:px-12 -mt-4 relative z-20">
+          <div className="rounded-xl border border-border/50 bg-card p-5 shadow-lg">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-foreground mb-2">Your Progress</h3>
+                <CourseProgressBar completed={completedIds.size} total={totalLessons} />
+              </div>
+              {resumeLesson && !completedIds.has(resumeLesson.id) && (
+                <Link
+                  to={`/course/${course.slug}/lesson/${resumeLesson.id}`}
+                  className="inline-flex items-center gap-2 rounded-lg bg-primary/10 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/20 transition-colors flex-shrink-0"
+                >
+                  Continue <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Module accordion */}
       <div className="mx-auto max-w-3xl px-6 py-10 md:px-12">
         <h2 className="mb-6 font-heading text-xl font-bold text-foreground">Course Content</h2>
         <div className="space-y-3">
           {modules.map((mod, mi) => {
             if (!mod) return null;
-            return <ModuleAccordion key={mod.id} mod={mod} mi={mi} db={db} course={course} language={language} defaultOpen={mi === 0} />;
+            return <ModuleAccordion key={mod.id} mod={mod} mi={mi} db={db} course={course} language={language} completedIds={completedIds} resumeLessonId={resumeLesson?.id} defaultOpen={mi === 0} />;
           })}
         </div>
       </div>
@@ -101,18 +153,26 @@ const CourseLandingPage = () => {
   );
 };
 
-function ModuleAccordion({ mod, mi, db, course, language, defaultOpen }: { mod: any; mi: number; db: any; course: any; language: any; defaultOpen: boolean }) {
+function ModuleAccordion({ mod, mi, db, course, language, completedIds, resumeLessonId, defaultOpen }: {
+  mod: any; mi: number; db: any; course: any; language: any; completedIds: Set<string>; resumeLessonId?: string; defaultOpen: boolean;
+}) {
   const [open, setOpen] = useState(defaultOpen);
   const modTr = getTranslation(mod.translations, language) as { title?: string } | undefined;
   const lessons = mod.lessonIds.map((id: string) => db.lessons.byId[id]).filter(Boolean);
+  const doneLessons = lessons.filter((l: any) => completedIds.has(l.id)).length;
 
   return (
     <div className="rounded-xl border border-border/50 bg-card overflow-hidden">
       <button onClick={() => setOpen(!open)} className="flex w-full items-center justify-between p-5 text-left">
-        <div>
-          <span className="text-xs font-medium text-muted-foreground">Module {mi + 1}</span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground">Module {mi + 1}</span>
+            <span className="text-xs text-muted-foreground">· {doneLessons}/{lessons.length} completed</span>
+          </div>
           <h3 className="font-heading text-base font-semibold text-foreground">{modTr?.title ?? 'Untitled'}</h3>
-          <span className="text-xs text-muted-foreground">{lessons.length} lesson{lessons.length !== 1 ? 's' : ''}</span>
+          <div className="mt-2 max-w-[200px]">
+            <CourseProgressBar completed={doneLessons} total={lessons.length} showLabel={false} />
+          </div>
         </div>
         {open ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
       </button>
@@ -120,17 +180,32 @@ function ModuleAccordion({ mod, mi, db, course, language, defaultOpen }: { mod: 
         <div className="border-t border-border/50 px-5 pb-4 pt-2 animate-fade-in">
           {lessons.map((lesson: any, li: number) => {
             const lTr = getTranslation(lesson.translations, language) as { title?: string; summary?: string } | undefined;
+            const isDone = completedIds.has(lesson.id);
+            const isResume = lesson.id === resumeLessonId;
+            const video = lesson.videoId ? db.videos.byId[lesson.videoId] : undefined;
+            const duration = video?.durationSeconds;
+
             return (
-              <Link key={lesson.id} to={`/course/${course.slug}/lesson/${lesson.id}`} className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-secondary">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">{li + 1}</span>
-                <div className="flex-1">
+              <Link key={lesson.id} to={`/course/${course.slug}/lesson/${lesson.id}`} className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors hover:bg-secondary ${isResume ? 'bg-primary/5 border border-primary/20' : 'text-foreground'}`}>
+                <span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold flex-shrink-0 ${
+                  isDone ? 'bg-emerald-500/20 text-emerald-500' : 'bg-primary/10 text-primary'
+                }`}>
+                  {isDone ? <CheckCircle2 className="h-4 w-4" /> : li + 1}
+                </span>
+                <div className="flex-1 min-w-0">
                   <span className="line-clamp-1">{lTr?.title ?? 'Untitled'}</span>
+                  {isResume && <span className="text-[10px] font-medium text-primary">▶ Resume here</span>}
                 </div>
-                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground flex-shrink-0">
+                  {duration && (
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {Math.floor(duration / 60)}m
+                    </span>
+                  )}
                   {lesson.type === 'video' && <Play className="h-3 w-3" />}
                   {lesson.type === 'text' && <BookOpen className="h-3 w-3" />}
-                  {lesson.type}
-                </span>
+                </div>
               </Link>
             );
           })}

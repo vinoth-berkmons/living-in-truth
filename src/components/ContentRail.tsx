@@ -194,7 +194,7 @@ const MediaCard = ({ item, language, isShort, index }: MediaCardProps) => {
         {!showPlayer && (
           <div className="absolute inset-0 flex items-center justify-center bg-background/0 opacity-0 transition-all duration-400 group-hover:bg-background/40 group-hover:opacity-100">
             <div className="rounded-full bg-primary p-3.5 shadow-xl shadow-primary/30 transition-transform duration-300 scale-75 group-hover:scale-100">
-              <Play className="h-5 w-5 text-primary-foreground" fill="currentColor" />
+              {(isShort || item.type === 'video' || item.type === 'course') ? <Play className="h-5 w-5 text-primary-foreground" fill="currentColor" /> : <BookOpen className="h-5 w-5 text-primary-foreground" />}
             </div>
           </div>
         )}

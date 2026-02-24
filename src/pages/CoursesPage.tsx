@@ -1,21 +1,21 @@
-import { useParams, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { getDB } from '@/lib/db';
 import { PublicLayout } from '@/components/PublicLayout';
 import { useLanguageStore } from '@/stores';
 import { getTranslation, t } from '@/lib/i18n';
-import { GraduationCap, Crown, Play, BookOpen } from 'lucide-react';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { GraduationCap, Crown } from 'lucide-react';
 
 const CoursesPage = () => {
-  const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
+  const workspace = useWorkspace();
   const { language } = useLanguageStore();
   const db = getDB();
-  const workspace = db ? Object.values(db.workspaces.byId).find(w => w.slug === workspaceSlug && w.status === 'active') : undefined;
-  if (!workspace || !db) return <div className="flex min-h-screen items-center justify-center bg-background"><p>{t('site.unavailable', language)}</p></div>;
+  if (!db) return null;
 
   const courses = Object.values(db.courses.byId).filter(c => c.workspaceId === workspace.id && c.status === 'published');
 
   return (
-    <PublicLayout workspace={workspace}>
+    <PublicLayout>
       <div className="px-6 py-10 md:px-12">
         <div className="mb-8">
           <h1 className="font-heading text-3xl font-bold text-foreground md:text-4xl">{t('nav.courses', language)}</h1>
@@ -27,7 +27,6 @@ const CoursesPage = () => {
             const tr = getTranslation(course.translations, language);
             const moduleCount = course.moduleIds.length;
             const lessonCount = course.moduleIds.reduce((acc, mid) => acc + (db.modules.byId[mid]?.lessonIds.length ?? 0), 0);
-            // Get cover from first video lesson
             const firstModId = course.moduleIds[0];
             const firstMod = firstModId ? db.modules.byId[firstModId] : undefined;
             const firstLessonId = firstMod?.lessonIds[0];
@@ -36,7 +35,7 @@ const CoursesPage = () => {
             const coverUrl = coverVideo?.coverImageUrl ?? 'https://images.unsplash.com/photo-1504052434569-70ad5836ab65?w=800&q=80';
 
             return (
-              <Link key={course.id} to={`/w/${workspace.slug}/course/${course.slug}`} className="group overflow-hidden rounded-xl border border-border/50 bg-card transition-all hover:border-primary/30 hover:shadow-lg hover:-translate-y-1">
+              <Link key={course.id} to={`/course/${course.slug}`} className="group overflow-hidden rounded-xl border border-border/50 bg-card transition-all hover:border-primary/30 hover:shadow-lg hover:-translate-y-1">
                 <div className="relative aspect-video overflow-hidden bg-secondary">
                   <img src={coverUrl} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">

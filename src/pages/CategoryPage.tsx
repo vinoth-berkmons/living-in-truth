@@ -3,14 +3,15 @@ import { getDB } from '@/lib/db';
 import { PublicLayout } from '@/components/PublicLayout';
 import { useLanguageStore } from '@/stores';
 import { getTranslation, t } from '@/lib/i18n';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { Play, BookOpen, Crown, Clock, ArrowLeft } from 'lucide-react';
 
 const CategoryPage = () => {
-  const { workspaceSlug, catSlug } = useParams<{ workspaceSlug: string; catSlug: string }>();
+  const { catSlug } = useParams<{ catSlug: string }>();
+  const workspace = useWorkspace();
   const { language } = useLanguageStore();
   const db = getDB();
-  const workspace = db ? Object.values(db.workspaces.byId).find(w => w.slug === workspaceSlug && w.status === 'active') : undefined;
-  if (!workspace || !db) return <div className="flex min-h-screen items-center justify-center bg-background"><p className="text-foreground">Not found</p></div>;
+  if (!db) return null;
 
   const category = Object.values(db.categories.byId).find(c => c.workspaceId === workspace.id && c.slug === catSlug);
   if (!category) return <div className="flex min-h-screen items-center justify-center bg-background"><p className="text-foreground">Category not found</p></div>;
@@ -20,9 +21,9 @@ const CategoryPage = () => {
   const videos = Object.values(db.videos.byId).filter(v => v.workspaceId === workspace.id && v.status === 'published' && v.categoryIds.includes(category.id));
 
   return (
-    <PublicLayout workspace={workspace}>
+    <PublicLayout>
       <div className="px-6 py-10 md:px-12">
-        <Link to={`/w/${workspace.slug}/explore`} className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <Link to="/explore" className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-3 w-3" />{t('common.back', language)}
         </Link>
         <h1 className="font-heading text-3xl font-bold text-foreground">{catTr?.title ?? catSlug}</h1>
@@ -32,7 +33,7 @@ const CategoryPage = () => {
           {videos.map(item => {
             const vtr = getTranslation(item.translations, language);
             return (
-              <Link key={item.id} to={`/w/${workspace.slug}/watch/${item.slug}`} className="group overflow-hidden rounded-xl border border-border/50 bg-card transition-all hover:border-primary/30 hover:shadow-lg">
+              <Link key={item.id} to={`/watch/${item.slug}`} className="group overflow-hidden rounded-xl border border-border/50 bg-card transition-all hover:border-primary/30 hover:shadow-lg">
                 <div className="relative aspect-video overflow-hidden bg-secondary">
                   {item.coverImageUrl && <img src={item.coverImageUrl} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />}
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -56,7 +57,7 @@ const CategoryPage = () => {
           {content.map(item => {
             const ctr = getTranslation(item.translations, language);
             return (
-              <Link key={item.id} to={`/w/${workspace.slug}/read/${item.slug}`} className="group overflow-hidden rounded-xl border border-border/50 bg-card transition-all hover:border-primary/30 hover:shadow-lg">
+              <Link key={item.id} to={`/read/${item.slug}`} className="group overflow-hidden rounded-xl border border-border/50 bg-card transition-all hover:border-primary/30 hover:shadow-lg">
                 <div className="relative aspect-video overflow-hidden bg-secondary">
                   {item.coverImageUrl && <img src={item.coverImageUrl} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />}
                   {item.access === 'premium' && (

@@ -1,47 +1,49 @@
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { getDB } from '@/lib/db';
 import { PublicLayout } from '@/components/PublicLayout';
 import { useLanguageStore, useAuthStore } from '@/stores';
 import { t, getTranslation } from '@/lib/i18n';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { AuthRepo } from '@/repos';
+import { canAccessItem } from '@/lib/rbac';
 
 const AccountPage = () => {
-  const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
+  const workspace = useWorkspace();
   const navigate = useNavigate();
   const { language } = useLanguageStore();
   const { session, setSession } = useAuthStore();
   const db = getDB();
-  const workspace = db ? Object.values(db.workspaces.byId).find(w => w.slug === workspaceSlug && w.status === 'active') : undefined;
-  if (!workspace) return null;
 
   const user = session ? db?.users.byId[session.userId] : null;
 
   if (!user) {
     return (
-      <PublicLayout workspace={workspace}>
+      <PublicLayout>
         <div className="container mx-auto flex min-h-[60vh] items-center justify-center px-6">
           <div className="text-center">
             <p className="text-muted-foreground">Please sign in to view your account.</p>
-            <Link to={`/w/${workspace.slug}/login`} className="mt-4 inline-block rounded-lg bg-primary px-6 py-2 text-sm font-medium text-primary-foreground">{t('nav.login', language)}</Link>
+            <Link to="/login" className="mt-4 inline-block rounded-lg bg-primary px-6 py-2 text-sm font-medium text-primary-foreground">{t('nav.login', language)}</Link>
           </div>
         </div>
       </PublicLayout>
     );
   }
 
-  // User subscriptions
   const subIds = db?.subscriptions.idsByUserId[user.id] || [];
   const subs = subIds.map(id => db?.subscriptions.byId[id]).filter(Boolean);
   const progress = db?.progress.filter(p => p.userId === user.id) ?? [];
 
+  // Check premium access for current site
+  const hasPremium = canAccessItem(session?.userId, { access: 'premium', workspaceId: workspace.id });
+
   const handleLogout = async () => {
     await AuthRepo.logout();
     setSession(null);
-    navigate(`/w/${workspace.slug}`);
+    navigate('/');
   };
 
   return (
-    <PublicLayout workspace={workspace}>
+    <PublicLayout>
       <div className="container mx-auto max-w-2xl px-6 py-8">
         <h1 className="font-heading text-3xl font-bold text-foreground">{t('nav.account', language)}</h1>
 
@@ -54,6 +56,12 @@ const AccountPage = () => {
               <p className="text-sm text-muted-foreground">{user.email}</p>
             </div>
           </div>
+          <div className="mt-4 flex items-center gap-4">
+            <span className={`rounded px-2.5 py-1 text-xs font-medium ${hasPremium ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+              {hasPremium ? 'Premium Unlocked' : 'Free Only'}
+            </span>
+            <Link to="/pricing" className="text-sm text-primary hover:underline">{t('nav.pricing', language)}</Link>
+          </div>
           <button onClick={handleLogout} className="mt-4 text-sm text-destructive hover:underline">{t('nav.logout', language)}</button>
         </div>
 
@@ -65,11 +73,16 @@ const AccountPage = () => {
               {subs.map(sub => {
                 if (!sub) return null;
                 const plan = db?.plans.byId[sub.planId];
+                const scopeLabel = plan?.scope === 'global'
+                  ? 'All Sites'
+                  : plan?.workspaceId
+                    ? db?.workspaces.byId[plan.workspaceId]?.name ?? 'Unknown'
+                    : 'Unknown';
                 return (
                   <div key={sub.id} className="flex items-center justify-between rounded-lg border border-border bg-card p-4">
                     <div>
                       <p className="font-medium text-foreground">{plan?.name ?? 'Unknown Plan'}</p>
-                      <p className="text-xs text-muted-foreground">Status: {sub.status}</p>
+                      <p className="text-xs text-muted-foreground">Scope: {scopeLabel} · Status: {sub.status}</p>
                     </div>
                     <span className={`rounded px-2 py-1 text-xs font-medium ${sub.status === 'active' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>{sub.status}</span>
                   </div>

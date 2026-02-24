@@ -1,7 +1,7 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Play, BookOpen, GraduationCap, ChevronLeft, ChevronRight } from 'lucide-react';
-import type { ItemRef, Workspace } from '@/types/entities';
+import type { ItemRef } from '@/types/entities';
 import type { AppDatabase } from '@/types/db';
 import { getTranslation, t } from '@/lib/i18n';
 import type { Language } from '@/types/entities';
@@ -9,13 +9,12 @@ import type { Language } from '@/types/entities';
 interface HeroCarouselProps {
   itemRefs: ItemRef[];
   db: AppDatabase;
-  workspace: Workspace;
   language: Language;
 }
 
-export const HeroCarousel = ({ itemRefs, db, workspace, language }: HeroCarouselProps) => {
+export const HeroCarousel = ({ itemRefs, db, language }: HeroCarouselProps) => {
   const [current, setCurrent] = useState(0);
-  const slides = itemRefs.map(ref => resolveHeroSlide(ref, db, workspace, language)).filter(Boolean) as HeroSlide[];
+  const slides = itemRefs.map(ref => resolveHeroSlide(ref, db, language)).filter(Boolean) as HeroSlide[];
 
   if (slides.length === 0) return null;
 
@@ -112,7 +111,7 @@ interface HeroSlide {
   categoryHref?: string;
 }
 
-function resolveHeroSlide(ref: ItemRef, db: AppDatabase, workspace: Workspace, lang: Language): HeroSlide | null {
+function resolveHeroSlide(ref: ItemRef, db: AppDatabase, lang: Language): HeroSlide | null {
   const l = lang as any;
   if (ref.entityType === 'video') {
     const item = db.videos.byId[ref.id];
@@ -121,8 +120,8 @@ function resolveHeroSlide(ref: ItemRef, db: AppDatabase, workspace: Workspace, l
     const catSlug = item.categoryIds[0] ? db.categories.byId[item.categoryIds[0]]?.slug : undefined;
     return {
       entityType: 'video', title: tr?.title ?? 'Untitled', excerpt: tr?.description,
-      coverImageUrl: item.coverImageUrl, href: `/w/${workspace.slug}/watch/${item.slug}`,
-      categoryHref: catSlug ? `/w/${workspace.slug}/category/${catSlug}` : undefined,
+      coverImageUrl: item.coverImageUrl, href: `/watch/${item.slug}`,
+      categoryHref: catSlug ? `/category/${catSlug}` : undefined,
     };
   }
   if (ref.entityType === 'content') {
@@ -132,15 +131,14 @@ function resolveHeroSlide(ref: ItemRef, db: AppDatabase, workspace: Workspace, l
     const catSlug = item.categoryIds[0] ? db.categories.byId[item.categoryIds[0]]?.slug : undefined;
     return {
       entityType: 'content', title: tr?.title ?? 'Untitled', excerpt: tr?.excerpt,
-      coverImageUrl: item.coverImageUrl, href: `/w/${workspace.slug}/read/${item.slug}`,
-      categoryHref: catSlug ? `/w/${workspace.slug}/category/${catSlug}` : undefined,
+      coverImageUrl: item.coverImageUrl, href: `/read/${item.slug}`,
+      categoryHref: catSlug ? `/category/${catSlug}` : undefined,
     };
   }
   if (ref.entityType === 'course') {
     const item = db.courses.byId[ref.id];
     if (!item) return null;
     const tr = getTranslation(item.translations, l);
-    // Use first video's cover or a fallback
     const firstModId = item.moduleIds[0];
     const firstMod = firstModId ? db.modules.byId[firstModId] : undefined;
     const firstLessonId = firstMod?.lessonIds[0];
@@ -149,7 +147,7 @@ function resolveHeroSlide(ref: ItemRef, db: AppDatabase, workspace: Workspace, l
     return {
       entityType: 'course', title: tr?.title ?? 'Untitled', excerpt: tr?.description,
       coverImageUrl: coverVideo?.coverImageUrl ?? 'https://images.unsplash.com/photo-1504052434569-70ad5836ab65?w=800&q=80',
-      href: `/w/${workspace.slug}/course/${item.slug}`,
+      href: `/course/${item.slug}`,
     };
   }
   return null;

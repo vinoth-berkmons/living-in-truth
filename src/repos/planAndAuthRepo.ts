@@ -44,6 +44,38 @@ export const SubscriptionRepo = {
     return ids.map(id => db.subscriptions.byId[id]).filter(Boolean) as UserSubscription[];
   },
 
+  /** Public: subscribe current user to a plan */
+  async subscribe(planId: string): Promise<UserSubscription | null> {
+    const db = getDB();
+    if (!db?.session) return null;
+    const userId = db.session.userId;
+    const plan = db.plans.byId[planId];
+    if (!plan || plan.status !== 'active') return null;
+
+    const now = new Date().toISOString();
+    const endDate = new Date();
+    if (plan.interval === 'yearly') {
+      endDate.setFullYear(endDate.getFullYear() + 1);
+    } else {
+      endDate.setMonth(endDate.getMonth() + 1);
+    }
+
+    const sub: UserSubscription = {
+      id: `sub-${crypto.randomUUID().slice(0, 8)}`,
+      userId, planId, status: 'active',
+      startAt: now, endAt: endDate.toISOString(),
+      provider: 'local',
+    };
+    updateDB(db => {
+      db.subscriptions.byId[sub.id] = sub;
+      if (!db.subscriptions.idsByUserId[userId]) db.subscriptions.idsByUserId[userId] = [];
+      db.subscriptions.idsByUserId[userId].push(sub.id);
+      return db;
+    });
+    return sub;
+  },
+
+  /** Admin: assign a plan to any user */
   async adminAssignPlan(userId: string, planId: string): Promise<UserSubscription> {
     const now = new Date().toISOString();
     const endDate = new Date();

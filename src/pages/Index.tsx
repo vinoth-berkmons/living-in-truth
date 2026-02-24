@@ -10,10 +10,10 @@ const Index = () => {
   const { isDark } = useThemeStore();
   const { language } = useLanguageStore();
 
-  useEffect(() => { initDB(); }, []);
   useEffect(() => { document.documentElement.classList.toggle('dark', isDark); }, [isDark]);
 
   const activeWorkspaces = useMemo(() => {
+    initDB();
     const db = getDB();
     return db ? Object.values(db.workspaces.byId).filter(w => w.status === 'active') : [];
   }, []);
